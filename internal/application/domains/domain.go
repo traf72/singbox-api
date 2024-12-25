@@ -1,59 +1,75 @@
 package domains
 
 import (
+	"regexp"
 	"strings"
 )
 
-type domainType int
+type kind int
 
 const (
-	Suffix domainType = iota
+	Suffix kind = iota
 	Keyword
-	Strict
-	Invalid = -1
+	Domain
 )
 
-type domain struct {
-	kind domainType
-	name string
+type template struct {
+	kind kind
+	text string
 }
 
-func parse(input string) (domain, error) {
+func parse(input string) (template, error) {
 	trimmed := strings.TrimSpace(input)
 	if trimmed == "" {
-		return domain{}, domainIsEmpty
+		return template{}, errEmptyTemplate
 	}
 
 	parts := strings.Split(trimmed, ":")
 	if len(parts) > 2 {
-		return domain{}, tooManyParts(input)
+		return template{}, tooManyParts(input)
 	}
 
 	if len(parts) == 1 {
-		d := parts[0]
-		if isValid(d) {
-			return domain{kind: Strict, name: strings.ToLower(d)}, nil
+		d, err := parseDomain(parts[0])
+		if err != nil {
+			return template{}, err
 		}
 
-		return domain{}, invalidDomain(input)
+		return template{kind: Domain, text: d}, nil
 	}
 
-	dt := parts[0]
-	d := parts[1]
-
-	if !isValid(d) {
-		return domain{}, invalidDomain(input)
+	t := strings.TrimSpace(parts[1])
+	if t == "" {
+		return template{}, errEmptyTemplate
 	}
 
-	if !isValid(d) {
-		return domain{}, invalidDomain(input)
+	kind, err := parseType(parts[0])
+	if err != nil {
+		return template{}, err
 	}
+
+	return template{kind: kind, text: strings.ToLower(t)}, nil
 }
 
-func parseType(input string) (domainType, error) {
+var domainRegex = regexp.MustCompile(`^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$`)
+
+func parseDomain(input string) (string, error) {
 	trimmed := strings.TrimSpace(input)
 	if trimmed == "" {
-		return Invalid, domainTypeIsEmpty
+		return "", errEmptyTemplate
+	}
+
+	if !domainRegex.MatchString(trimmed) {
+		return "", invalidDomain(input)
+	}
+
+	return strings.ToLower(trimmed), nil
+}
+
+func parseType(input string) (kind, error) {
+	trimmed := strings.TrimSpace(input)
+	if trimmed == "" {
+		return -1, errEmptyTemplateType
 	}
 
 	switch strings.ToLower(trimmed) {
@@ -62,6 +78,6 @@ func parseType(input string) (domainType, error) {
 	case "domain":
 		return Suffix, nil
 	default:
-		return Invalid, invalidDomainType(input)
+		return -1, invalidTemplateType(input)
 	}
 }

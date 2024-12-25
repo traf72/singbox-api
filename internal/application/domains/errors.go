@@ -4,17 +4,17 @@ import (
 	"fmt"
 )
 
-var domainTypeIsEmpty = fmt.Errorf("Domain type is empty")
-var domainIsEmpty = fmt.Errorf("Domain is empty")
+var errEmptyTemplate = fmt.Errorf("template is empty")
+var errEmptyTemplateType = fmt.Errorf("template type is empty")
 
 func tooManyParts(d string) error {
-	return fmt.Errorf(`Unable to parse. Domain "%s" has too many parts`, d)
+	return fmt.Errorf(`template "%s" has too many parts`, d)
 }
 
 func invalidDomain(d string) error {
-	return fmt.Errorf(`Unable to parse. Domain "%s" is invalid`, d)
+	return fmt.Errorf(`domain "%s" is invalid`, d)
 }
 
-func invalidDomainType(t string) error {
-	return fmt.Errorf(`Unable to parse. Domain type "%s" is invalid`, t)
+func invalidTemplateType(t string) error {
+	return fmt.Errorf(`template type "%s" is invalid`, t)
 }
