@@ -4,32 +4,32 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/traf72/singbox-api/internal/domain"
+	"github.com/traf72/singbox-api/internal/config"
 	"github.com/traf72/singbox-api/internal/err"
 )
 
-func AddDomain(input string) *err.AppErr {
-	template, err := parse(input)
+func AddDnsRule(input string) *err.AppErr {
+	dnsRule, err := parse(input)
 	if err != nil {
 		return err
 	}
 
-	if err = domain.AddTemplate(template); err != nil {
+	if err = config.AddDnsRule(dnsRule); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-var errEmptyTemplate = err.NewValidationErr("EmptyTemplate", "template is empty")
+var errEmptyRule = err.NewValidationErr("EmptyDnsRule", "dns rule is empty")
 
 func errTooManyParts(t string) *err.AppErr {
-	return err.NewValidationErr("TemplateHasTooManyParts", fmt.Sprintf("template '%s' has too many parts", t))
+	return err.NewValidationErr("DnsRuleHasTooManyParts", fmt.Sprintf("dns rule '%s' has too many parts", t))
 }
 
-func parse(input string) (*domain.Template, *err.AppErr) {
+func parse(input string) (*config.DnsRule, *err.AppErr) {
 	if strings.TrimSpace(input) == "" {
-		return nil, errEmptyTemplate
+		return nil, errEmptyRule
 	}
 
 	parts := strings.Split(input, ":")
@@ -37,18 +37,18 @@ func parse(input string) (*domain.Template, *err.AppErr) {
 		return nil, errTooManyParts(input)
 	}
 
-	var kind domain.TemplateKind
+	var kind config.DnsRuleType
 	var text string
 
 	if len(parts) == 1 {
-		kind = domain.Domain
+		kind = config.Domain
 		text = parts[0]
 	} else {
 		kind = parseKind(parts[0])
 		text = parts[1]
 	}
 
-	template, err := domain.NewTemplate(kind, text)
+	template, err := config.NewDnsRule(kind, text)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +56,7 @@ func parse(input string) (*domain.Template, *err.AppErr) {
 	return template, nil
 }
 
-func parseKind(input string) domain.TemplateKind {
+func parseKind(input string) config.DnsRuleType {
 	trimmed := strings.TrimSpace(input)
 	if trimmed == "" {
 		return -1
@@ -64,9 +64,9 @@ func parseKind(input string) domain.TemplateKind {
 
 	switch strings.ToLower(trimmed) {
 	case "keyword":
-		return domain.Keyword
+		return config.Keyword
 	case "domain":
-		return domain.Suffix
+		return config.Suffix
 	default:
 		return -1
 	}

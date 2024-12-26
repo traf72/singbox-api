@@ -1,11 +1,10 @@
 package application
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/traf72/singbox-api/internal/domain"
+	"github.com/traf72/singbox-api/internal/config"
 	"github.com/traf72/singbox-api/internal/err"
 )
 
@@ -13,12 +12,12 @@ func TestParseType(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    string
-		expected domain.TemplateKind
+		expected config.DnsRuleType
 	}{
-		{"Keyword", "keyword", domain.Keyword},
-		{"Keyword_TrimSpaces", "  keyword\n", domain.Keyword},
-		{"Domain", "domain", domain.Suffix},
-		{"Domain_TrimSpaces", "\tdomain  \n", domain.Suffix},
+		{"Keyword", "keyword", config.Keyword},
+		{"Keyword_TrimSpaces", "  keyword\n", config.Keyword},
+		{"Domain", "domain", config.Suffix},
+		{"Domain_TrimSpaces", "\tdomain  \n", config.Suffix},
 		{"EmptyInput", "", -1},
 		{"SpaceOnlyInput", " \n\r\t", -1},
 		{"UnknownType", "unknown", -1},
@@ -36,38 +35,38 @@ func TestParse(t *testing.T) {
 	tests := []struct {
 		name          string
 		input         string
-		expected      *domain.Template
+		expected      *config.DnsRule
 		expectedError *err.AppErr
 	}{
 		{
 			name:          "Domain",
 			input:         "GOOGLE.com",
-			expected:      func() *domain.Template { t, _ := domain.NewTemplate(domain.Domain, "google.com"); return t }(),
+			expected:      func() *config.DnsRule { t, _ := config.NewDnsRule(config.Domain, "google.com"); return t }(),
 			expectedError: nil,
 		},
 		{
 			name:          "Suffix",
 			input:         "DOMAIN:mail.google.com",
-			expected:      func() *domain.Template { t, _ := domain.NewTemplate(domain.Suffix, "mail.google.com"); return t }(),
+			expected:      func() *config.DnsRule { t, _ := config.NewDnsRule(config.Suffix, "mail.google.com"); return t }(),
 			expectedError: nil,
 		},
 		{
 			name:          "Keyword",
 			input:         "\t KEYworD:Google \n",
-			expected:      func() *domain.Template { t, _ := domain.NewTemplate(domain.Keyword, "google"); return t }(),
+			expected:      func() *config.DnsRule { t, _ := config.NewDnsRule(config.Keyword, "google"); return t }(),
 			expectedError: nil,
 		},
 		{
 			name:          "EmptyInput",
 			input:         "",
 			expected:      nil,
-			expectedError: errEmptyTemplate,
+			expectedError: errEmptyRule,
 		},
 		{
 			name:          "SpaceOnlyInput",
 			input:         "\r\n\r ",
 			expected:      nil,
-			expectedError: errEmptyTemplate,
+			expectedError: errEmptyRule,
 		},
 		{
 			name:          "TooManyParts",
@@ -79,7 +78,7 @@ func TestParse(t *testing.T) {
 			name:          "EmptyKind",
 			input:         ":google.com",
 			expected:      nil,
-			expectedError: err.NewValidationErr("InvalidTemplateKind", fmt.Sprintf("kind '%d' is invalid", -1)),
+			expectedError: err.NewValidationErr("InvalidRuleType", "rule type is invalid"),
 		},
 	}
 

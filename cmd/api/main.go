@@ -17,7 +17,7 @@ func main() {
 
 	router := http.NewServeMux()
 
-	router.Handle("PUT /templates", handlers.AddTemplateHandler())
+	router.Handle("PUT /dns-rules", handlers.AddDnsRuleHandler())
 
 	// For Windows better to specify the full address (with IP instead of just ":8080") to avoid the Firewall issues
 	// https://stackoverflow.com/questions/55201561/golang-run-on-windows-without-deal-with-the-firewall
