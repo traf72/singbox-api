@@ -1,11 +1,11 @@
-package application
+package app
 
 import (
 	"fmt"
 	"strings"
 
 	"github.com/traf72/singbox-api/internal/apperr"
-	"github.com/traf72/singbox-api/internal/config"
+	"github.com/traf72/singbox-api/internal/core"
 )
 
 func AddDnsRule(input string) *apperr.Err {
@@ -14,7 +14,7 @@ func AddDnsRule(input string) *apperr.Err {
 		return err
 	}
 
-	if err = config.AddDnsRule(dnsRule); err != nil {
+	if err = core.AddDnsRule(dnsRule); err != nil {
 		return err
 	}
 
@@ -34,7 +34,7 @@ func errTooManyParts(t string) *apperr.Err {
 	return apperr.NewValidationErr("DnsRuleHasTooManyParts", fmt.Sprintf("DNS rule '%s' has too many parts", t))
 }
 
-func parse(input string) (*config.DnsRule, *apperr.Err) {
+func parse(input string) (*core.DnsRule, *apperr.Err) {
 	if strings.TrimSpace(input) == "" {
 		return nil, errEmptyRule
 	}
@@ -44,12 +44,12 @@ func parse(input string) (*config.DnsRule, *apperr.Err) {
 		return nil, errTooManyParts(input)
 	}
 
-	var dnsRuleType config.DnsRuleType
+	var dnsRuleType core.DnsRuleType
 	var domain string
 	var err *apperr.Err
 
 	if len(parts) == 1 {
-		dnsRuleType = config.Domain
+		dnsRuleType = core.Domain
 		domain = parts[0]
 	} else {
 		dnsRuleType, err = parseDnsType(parts[0])
@@ -60,7 +60,7 @@ func parse(input string) (*config.DnsRule, *apperr.Err) {
 		domain = parts[1]
 	}
 
-	dnsRule, err := config.NewDnsRule(dnsRuleType, domain)
+	dnsRule, err := core.NewDnsRule(dnsRuleType, domain)
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +68,7 @@ func parse(input string) (*config.DnsRule, *apperr.Err) {
 	return dnsRule, nil
 }
 
-func parseDnsType(input string) (config.DnsRuleType, *apperr.Err) {
+func parseDnsType(input string) (core.DnsRuleType, *apperr.Err) {
 	trimmed := strings.TrimSpace(input)
 	if trimmed == "" {
 		return -1, errEmptyDnsRuleType
@@ -76,9 +76,9 @@ func parseDnsType(input string) (config.DnsRuleType, *apperr.Err) {
 
 	switch strings.ToLower(trimmed) {
 	case "keyword":
-		return config.Keyword, nil
+		return core.Keyword, nil
 	case "domain":
-		return config.Suffix, nil
+		return core.Suffix, nil
 	default:
 		return -1, errUnknownDnsRuleType(input)
 	}

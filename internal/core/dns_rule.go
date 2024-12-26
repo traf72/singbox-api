@@ -1,8 +1,9 @@
-package config
+package core
 
 import (
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/traf72/singbox-api/internal/apperr"
@@ -89,9 +90,17 @@ func (t *DnsRule) validate() *apperr.Err {
 }
 
 func AddDnsRule(r *DnsRule) *apperr.Err {
-	_, err := load()
+	c, err := load()
 	if err != nil {
 		return err
+	}
+
+	switch r.kind {
+	case Suffix:
+		ruleIndex := slices.IndexFunc(c.DNS.Rules, func(rule dnsRule) bool {
+			return rule.Server == "dns-remote"
+		})
+		fmt.Println(ruleIndex)
 	}
 
 	return nil

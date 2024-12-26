@@ -1,4 +1,4 @@
-package config
+package core
 
 import (
 	"encoding/json"
@@ -99,7 +99,7 @@ type routeRule struct {
 	Outbound      string   `json:"outbound"`
 }
 
-var errEmptyPath = apperr.NewFatalErr("EmptyConfigPath", "Path to the configuration file is not specified")
+var errEmptyPath = apperr.NewFatalErr("EmptyConfigPath", "path to the configuration file is not specified")
 
 func load() (*config, *apperr.Err) {
 	path := os.Getenv("CONFIG_PATH")

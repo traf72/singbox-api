@@ -1,7 +1,5 @@
 package apperr
 
-import "fmt"
-
 type ErrKind int
 
 const (
@@ -17,7 +15,7 @@ type Err struct {
 }
 
 func (e *Err) Error() string {
-	return fmt.Sprintf("%s: %s", e.code, e.msg)
+	return e.msg
 }
 
 func (e *Err) Msg() string {

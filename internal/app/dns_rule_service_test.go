@@ -1,24 +1,24 @@
-package application
+package app
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/traf72/singbox-api/internal/apperr"
-	"github.com/traf72/singbox-api/internal/config"
+	"github.com/traf72/singbox-api/internal/core"
 )
 
 func TestParseDnsType(t *testing.T) {
 	tests := []struct {
 		name        string
 		input       string
-		expected    config.DnsRuleType
+		expected    core.DnsRuleType
 		expectedErr *apperr.Err
 	}{
-		{"Keyword", "keyword", config.Keyword, nil},
-		{"Keyword_TrimSpaces", "  keyword\n", config.Keyword, nil},
-		{"Domain", "domain", config.Suffix, nil},
-		{"Domain_TrimSpaces", "\tdomain  \n", config.Suffix, nil},
+		{"Keyword", "keyword", core.Keyword, nil},
+		{"Keyword_TrimSpaces", "  keyword\n", core.Keyword, nil},
+		{"Domain", "domain", core.Suffix, nil},
+		{"Domain_TrimSpaces", "\tdomain  \n", core.Suffix, nil},
 		{"EmptyInput", "", -1, errEmptyDnsRuleType},
 		{"SpaceOnlyInput", " \n\r\t", -1, errEmptyDnsRuleType},
 		{"UnknownType", "unknown", -1, errUnknownDnsRuleType("unknown")},
@@ -37,25 +37,25 @@ func TestParse(t *testing.T) {
 	tests := []struct {
 		name          string
 		input         string
-		expected      *config.DnsRule
+		expected      *core.DnsRule
 		expectedError *apperr.Err
 	}{
 		{
 			name:          "Domain",
 			input:         "GOOGLE.com",
-			expected:      func() *config.DnsRule { t, _ := config.NewDnsRule(config.Domain, "google.com"); return t }(),
+			expected:      func() *core.DnsRule { t, _ := core.NewDnsRule(core.Domain, "google.com"); return t }(),
 			expectedError: nil,
 		},
 		{
 			name:          "Suffix",
 			input:         "DOMAIN:mail.google.com",
-			expected:      func() *config.DnsRule { t, _ := config.NewDnsRule(config.Suffix, "mail.google.com"); return t }(),
+			expected:      func() *core.DnsRule { t, _ := core.NewDnsRule(core.Suffix, "mail.google.com"); return t }(),
 			expectedError: nil,
 		},
 		{
 			name:          "Keyword",
 			input:         "\t KEYworD:Google \n",
-			expected:      func() *config.DnsRule { t, _ := config.NewDnsRule(config.Keyword, "google"); return t }(),
+			expected:      func() *core.DnsRule { t, _ := core.NewDnsRule(core.Keyword, "google"); return t }(),
 			expectedError: nil,
 		},
 		{
