@@ -8,25 +8,27 @@ import (
 	"github.com/traf72/singbox-api/internal/err"
 )
 
-func TestParseType(t *testing.T) {
+func TestParseDnsType(t *testing.T) {
 	tests := []struct {
-		name     string
-		input    string
-		expected config.DnsRuleType
+		name        string
+		input       string
+		expected    config.DnsRuleType
+		expectedErr *err.AppErr
 	}{
-		{"Keyword", "keyword", config.Keyword},
-		{"Keyword_TrimSpaces", "  keyword\n", config.Keyword},
-		{"Domain", "domain", config.Suffix},
-		{"Domain_TrimSpaces", "\tdomain  \n", config.Suffix},
-		{"EmptyInput", "", -1},
-		{"SpaceOnlyInput", " \n\r\t", -1},
-		{"UnknownType", "unknown", -1},
+		{"Keyword", "keyword", config.Keyword, nil},
+		{"Keyword_TrimSpaces", "  keyword\n", config.Keyword, nil},
+		{"Domain", "domain", config.Suffix, nil},
+		{"Domain_TrimSpaces", "\tdomain  \n", config.Suffix, nil},
+		{"EmptyInput", "", -1, errEmptyDnsRuleType},
+		{"SpaceOnlyInput", " \n\r\t", -1, errEmptyDnsRuleType},
+		{"UnknownType", "unknown", -1, errUnknownDnsRuleType("unknown")},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := parseKind(tt.input)
+			result, err := parseDnsType(tt.input)
 			assert.Equal(t, tt.expected, result)
+			assert.Equal(t, tt.expectedErr, err)
 		})
 	}
 }
@@ -75,10 +77,22 @@ func TestParse(t *testing.T) {
 			expectedError: errTooManyParts("domain:google.com:extra"),
 		},
 		{
-			name:          "EmptyKind",
+			name:          "EmptyDnsRuleType",
 			input:         ":google.com",
 			expected:      nil,
-			expectedError: err.NewValidationErr("InvalidRuleType", "rule type is invalid"),
+			expectedError: errEmptyDnsRuleType,
+		},
+		{
+			name:          "UnknownDnsRuleType",
+			input:         "bad:google.com",
+			expected:      nil,
+			expectedError: errUnknownDnsRuleType("bad"),
+		},
+		{
+			name:          "EmptyDomain",
+			input:         "domain:",
+			expected:      nil,
+			expectedError: err.NewValidationErr("EmptyDomain", "domain is empty"),
 		},
 	}
 
