@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/traf72/singbox-api/internal/apperr"
 	"github.com/traf72/singbox-api/internal/config"
-	"github.com/traf72/singbox-api/internal/err"
 )
 
 func TestParseDnsType(t *testing.T) {
@@ -13,7 +13,7 @@ func TestParseDnsType(t *testing.T) {
 		name        string
 		input       string
 		expected    config.DnsRuleType
-		expectedErr *err.AppErr
+		expectedErr *apperr.Err
 	}{
 		{"Keyword", "keyword", config.Keyword, nil},
 		{"Keyword_TrimSpaces", "  keyword\n", config.Keyword, nil},
@@ -38,7 +38,7 @@ func TestParse(t *testing.T) {
 		name          string
 		input         string
 		expected      *config.DnsRule
-		expectedError *err.AppErr
+		expectedError *apperr.Err
 	}{
 		{
 			name:          "Domain",
@@ -92,7 +92,7 @@ func TestParse(t *testing.T) {
 			name:          "EmptyDomain",
 			input:         "domain:",
 			expected:      nil,
-			expectedError: err.NewValidationErr("EmptyDomain", "domain is empty"),
+			expectedError: apperr.NewValidationErr("EmptyDomain", "domain is empty"),
 		},
 	}
 

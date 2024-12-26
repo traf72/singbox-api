@@ -5,20 +5,20 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/traf72/singbox-api/internal/err"
+	"github.com/traf72/singbox-api/internal/apperr"
 )
 
 var (
-	errEmptyDomain     = err.NewValidationErr("EmptyDomain", "domain is empty")
-	errInvalidRuleType = err.NewValidationErr("InvalidRuleType", "rule type is invalid")
+	errEmptyDomain     = apperr.NewValidationErr("EmptyDomain", "domain is empty")
+	errInvalidRuleType = apperr.NewValidationErr("InvalidRuleType", "rule type is invalid")
 )
 
-func errDomainHasSpaces(t string) *err.AppErr {
-	return err.NewValidationErr("DomainHasSpaces", fmt.Sprintf("domain '%s' has spaces", t))
+func errDomainHasSpaces(t string) *apperr.Err {
+	return apperr.NewValidationErr("DomainHasSpaces", fmt.Sprintf("domain '%s' has spaces", t))
 }
 
-func errInvalidDomain(d string) *err.AppErr {
-	return err.NewValidationErr("InvalidDomain", fmt.Sprintf("domain '%s' is invalid", d))
+func errInvalidDomain(d string) *apperr.Err {
+	return apperr.NewValidationErr("InvalidDomain", fmt.Sprintf("domain '%s' is invalid", d))
 }
 
 type DnsRuleType int
@@ -56,7 +56,7 @@ type DnsRule struct {
 	domain string
 }
 
-func NewDnsRule(kind DnsRuleType, text string) (*DnsRule, *err.AppErr) {
+func NewDnsRule(kind DnsRuleType, text string) (*DnsRule, *apperr.Err) {
 	text = strings.ToLower(strings.TrimSpace(text))
 	t := &DnsRule{kind: kind, domain: text}
 	if err := t.validate(); err != nil {
@@ -68,7 +68,7 @@ func NewDnsRule(kind DnsRuleType, text string) (*DnsRule, *err.AppErr) {
 
 var domainRegex = regexp.MustCompile(`^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$`)
 
-func (t *DnsRule) validate() *err.AppErr {
+func (t *DnsRule) validate() *apperr.Err {
 	if !t.kind.isValid() {
 		return errInvalidRuleType
 	}
@@ -88,10 +88,15 @@ func (t *DnsRule) validate() *err.AppErr {
 	return nil
 }
 
-func AddDnsRule(r *DnsRule) *err.AppErr {
+func AddDnsRule(r *DnsRule) *apperr.Err {
+	_, err := load()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func RemoveDnsRule(r *DnsRule) *err.AppErr {
+func RemoveDnsRule(r *DnsRule) *apperr.Err {
 	return nil
 }

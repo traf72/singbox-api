@@ -1,5 +1,12 @@
 package config
 
+import (
+	"encoding/json"
+	"os"
+
+	"github.com/traf72/singbox-api/internal/apperr"
+)
+
 type config struct {
 	Log       logConfig   `json:"log"`
 	DNS       dnsConfig   `json:"dns"`
@@ -92,18 +99,24 @@ type routeRule struct {
 	Outbound      string   `json:"outbound"`
 }
 
-// var errEmptyPath = err.NewFatalErr("EmptyConfigPath", "Path to the configuration file is not specified")
+var errEmptyPath = apperr.NewFatalErr("EmptyConfigPath", "Path to the configuration file is not specified")
 
-// func read() (*string, *err.AppErr) {
-// 	path := os.Getenv("CONFIG_PATH")
-// 	if path == "" {
-// 		return nil, errEmptyPath
-// 	}
+func load() (*config, *apperr.Err) {
+	path := os.Getenv("CONFIG_PATH")
+	if path == "" {
+		return nil, errEmptyPath
+	}
 
-// 	file, err := os.ReadFile(path)
-// 	if err != nil {
-// 		return nil, err
-// 	}
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, apperr.NewFatalErr("ConfigOpenError", err.Error())
+	}
 
-// 	return nil, nil
-// }
+	d := json.NewDecoder(file)
+	config := new(config)
+	if err := d.Decode(config); err != nil {
+		return nil, apperr.NewFatalErr("ConfigJsonDecodeError", err.Error())
+	}
+
+	return config, nil
+}

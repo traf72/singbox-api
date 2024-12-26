@@ -1,4 +1,4 @@
-package err
+package apperr
 
 import (
 	"testing"
@@ -9,7 +9,7 @@ import (
 func TestAppErr(t *testing.T) {
 	tests := []struct {
 		name         string
-		appErr       *AppErr
+		appErr       *Err
 		expectedMsg  string
 		expectedCode string
 		expectedKind ErrKind

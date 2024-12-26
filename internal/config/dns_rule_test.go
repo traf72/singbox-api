@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/traf72/singbox-api/internal/err"
+	"github.com/traf72/singbox-api/internal/apperr"
 )
 
 func TestTemplateKind_String(t *testing.T) {
@@ -49,7 +49,7 @@ func TestTemplate_Validate(t *testing.T) {
 	tests := []struct {
 		name     string
 		template DnsRule
-		expected *err.AppErr
+		expected *apperr.Err
 	}{
 		{"Template_Suffix", DnsRule{kind: Suffix, domain: ".com"}, nil},
 		{"Template_Keyword", DnsRule{kind: Keyword, domain: "google"}, nil},
@@ -75,7 +75,7 @@ func TestNewTemplate(t *testing.T) {
 		kind          DnsRuleType
 		text          string
 		expected      *DnsRule
-		expectedError *err.AppErr
+		expectedError *apperr.Err
 	}{
 		{"Template_Suffix", Suffix, " .Com ", &DnsRule{Suffix, ".com"}, nil},
 		{"Template_Domain", Domain, "Google.Com\n", &DnsRule{Domain, "google.com"}, nil},

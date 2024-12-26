@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/traf72/singbox-api/internal/apperr"
 	"github.com/traf72/singbox-api/internal/config"
-	"github.com/traf72/singbox-api/internal/err"
 )
 
-func AddDnsRule(input string) *err.AppErr {
+func AddDnsRule(input string) *apperr.Err {
 	dnsRule, err := parse(input)
 	if err != nil {
 		return err
@@ -22,19 +22,19 @@ func AddDnsRule(input string) *err.AppErr {
 }
 
 var (
-	errEmptyRule        = err.NewValidationErr("EmptyDnsRule", "DNS rule is empty")
-	errEmptyDnsRuleType = err.NewValidationErr("EmptyDnsRuleType", "DNS rule type is empty")
+	errEmptyRule        = apperr.NewValidationErr("EmptyDnsRule", "DNS rule is empty")
+	errEmptyDnsRuleType = apperr.NewValidationErr("EmptyDnsRuleType", "DNS rule type is empty")
 )
 
-func errUnknownDnsRuleType(t string) *err.AppErr {
-	return err.NewValidationErr("UnknownDnsRuleType", fmt.Sprintf("unknown DNS rule type '%s'", t))
+func errUnknownDnsRuleType(t string) *apperr.Err {
+	return apperr.NewValidationErr("UnknownDnsRuleType", fmt.Sprintf("unknown DNS rule type '%s'", t))
 }
 
-func errTooManyParts(t string) *err.AppErr {
-	return err.NewValidationErr("DnsRuleHasTooManyParts", fmt.Sprintf("DNS rule '%s' has too many parts", t))
+func errTooManyParts(t string) *apperr.Err {
+	return apperr.NewValidationErr("DnsRuleHasTooManyParts", fmt.Sprintf("DNS rule '%s' has too many parts", t))
 }
 
-func parse(input string) (*config.DnsRule, *err.AppErr) {
+func parse(input string) (*config.DnsRule, *apperr.Err) {
 	if strings.TrimSpace(input) == "" {
 		return nil, errEmptyRule
 	}
@@ -46,7 +46,7 @@ func parse(input string) (*config.DnsRule, *err.AppErr) {
 
 	var dnsRuleType config.DnsRuleType
 	var domain string
-	var err *err.AppErr
+	var err *apperr.Err
 
 	if len(parts) == 1 {
 		dnsRuleType = config.Domain
@@ -68,7 +68,7 @@ func parse(input string) (*config.DnsRule, *err.AppErr) {
 	return dnsRule, nil
 }
 
-func parseDnsType(input string) (config.DnsRuleType, *err.AppErr) {
+func parseDnsType(input string) (config.DnsRuleType, *apperr.Err) {
 	trimmed := strings.TrimSpace(input)
 	if trimmed == "" {
 		return -1, errEmptyDnsRuleType
