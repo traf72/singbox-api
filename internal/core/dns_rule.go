@@ -89,6 +89,11 @@ func (t *DnsRule) validate() *apperr.Err {
 	return nil
 }
 
+const (
+	DNSRemote string = "dns-remote"
+	DNSBlock  string = "dns-block"
+)
+
 func AddDnsRule(r *DnsRule) *apperr.Err {
 	c, err := load()
 	if err != nil {
@@ -97,10 +102,18 @@ func AddDnsRule(r *DnsRule) *apperr.Err {
 
 	switch r.kind {
 	case Suffix:
-		ruleIndex := slices.IndexFunc(c.DNS.Rules, func(rule dnsRule) bool {
-			return rule.Server == "dns-remote"
+		ruleIndex := slices.IndexFunc(c.config.DNS.Rules, func(rule dnsRule) bool {
+			return rule.Server == DNSRemote
 		})
-		fmt.Println(ruleIndex)
+
+		if ruleIndex >= 0 {
+			rule := &c.config.DNS.Rules[ruleIndex]
+			rule.DomainSuffix = append(rule.DomainSuffix, r.domain)
+		}
+
+		if err := save(c); err != nil {
+			return err
+		}
 	}
 
 	return nil

@@ -5,6 +5,7 @@ type ErrKind int
 const (
 	Validation ErrKind = iota
 	NotFound
+	Conflict
 	Fatal
 )
 
@@ -34,10 +35,14 @@ func NewValidationErr(code, msg string) *Err {
 	return &Err{code: code, msg: msg, kind: Validation}
 }
 
-func NewFatalErr(code, msg string) *Err {
-	return &Err{code: code, msg: msg, kind: Fatal}
-}
-
 func NewNotFoundErr(code, msg string) *Err {
 	return &Err{code: code, msg: msg, kind: NotFound}
+}
+
+func NewConflictErr(code, msg string) *Err {
+	return &Err{code: code, msg: msg, kind: Conflict}
+}
+
+func NewFatalErr(code, msg string) *Err {
+	return &Err{code: code, msg: msg, kind: Fatal}
 }

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/traf72/singbox-api/internal/api"
 	"github.com/traf72/singbox-api/internal/app"
@@ -13,6 +14,11 @@ func addDnsRule(w http.ResponseWriter, r *http.Request) {
 
 	if err := utils.ParseJson(r.Body, &dnsRule); err != nil {
 		api.SendBadRequest(w, err.Error())
+		return
+	}
+
+	if strings.TrimSpace(dnsRule) == "" {
+		api.SendBadRequest(w, "DNS rule must not be empty")
 		return
 	}
 

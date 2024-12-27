@@ -2,7 +2,10 @@ package core
 
 import (
 	"encoding/json"
+	"log"
 	"os"
+	"sync"
+	"time"
 
 	"github.com/traf72/singbox-api/internal/apperr"
 )
@@ -99,18 +102,33 @@ type routeRule struct {
 	Outbound      string   `json:"outbound"`
 }
 
-var errEmptyPath = apperr.NewFatalErr("EmptyConfigPath", "path to the configuration file is not specified")
+type configWithMetadata struct {
+	config       *config
+	lastModified time.Time
+}
 
-func load() (*config, *apperr.Err) {
-	path := os.Getenv("CONFIG_PATH")
+var errEmptyPath = apperr.NewFatalErr("ConfigEmptyPath", "path to the configuration file is not specified")
+
+func errStatReading(err string) *apperr.Err {
+	return apperr.NewFatalErr("ConfigStatReadError", err)
+}
+
+func load() (*configWithMetadata, *apperr.Err) {
+	path := getPath()
 	if path == "" {
 		return nil, errEmptyPath
+	}
+
+	stat, err := os.Stat(path)
+	if err != nil {
+		return nil, errStatReading(err.Error())
 	}
 
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, apperr.NewFatalErr("ConfigOpenError", err.Error())
 	}
+	defer file.Close()
 
 	d := json.NewDecoder(file)
 	config := new(config)
@@ -118,5 +136,60 @@ func load() (*config, *apperr.Err) {
 		return nil, apperr.NewFatalErr("ConfigJsonDecodeError", err.Error())
 	}
 
-	return config, nil
+	return &configWithMetadata{config: config, lastModified: stat.ModTime()}, nil
+}
+
+var saveMutex sync.Mutex
+
+func save(c *configWithMetadata) *apperr.Err {
+	path := getPath()
+	if path == "" {
+		return errEmptyPath
+	}
+
+	stat, err := os.Stat(path)
+	if err != nil {
+		return errStatReading(err.Error())
+	}
+
+	if stat.ModTime() != c.lastModified {
+		return apperr.NewConflictErr("ConfigConflict", "The configuration has been modified by another request. Please try again.")
+	}
+
+	saveMutex.Lock()
+	defer saveMutex.Unlock()
+
+	tempPath := path + ".tmp"
+	tmpFile, err := os.Create(tempPath)
+	if err != nil {
+		return apperr.NewFatalErr("ConfigTmpFileCreateError", err.Error())
+	}
+
+	removeTmpFile := func() {
+		if err != nil {
+			if removeErr := os.Remove(tempPath); removeErr != nil {
+				log.Println("failed to remove temp config file:", removeErr)
+			}
+		}
+	}
+
+	defer removeTmpFile()
+	defer tmpFile.Close()
+
+	encoder := json.NewEncoder(tmpFile)
+	encoder.SetIndent("", "    ")
+	if err := encoder.Encode(c.config); err != nil {
+		return apperr.NewFatalErr("ConfigJsonEncodeError", err.Error())
+	}
+
+	tmpFile.Close()
+	if err := os.Rename(tempPath, path); err != nil {
+		return apperr.NewFatalErr("ConfigTmpFileRenameError", err.Error())
+	}
+
+	return nil
+}
+
+func getPath() string {
+	return os.Getenv("CONFIG_PATH")
 }
