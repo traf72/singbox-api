@@ -7,35 +7,16 @@ import (
 	"github.com/traf72/singbox-api/internal/apperr"
 )
 
-func TestTemplateKind_String(t *testing.T) {
+func TestDNSRuleType_IsValid(t *testing.T) {
 	tests := []struct {
 		name     string
-		kind     DnsRuleType
-		expected string
-	}{
-		{"Suffix", Suffix, "Suffix"},
-		{"Keyword", Keyword, "Keyword"},
-		{"Domain", Domain, "Domain"},
-		{"Unknown", DnsRuleType(-1), "Unknown"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.expected, tt.kind.String())
-		})
-	}
-}
-
-func TestTemplateKind_IsValid(t *testing.T) {
-	tests := []struct {
-		name     string
-		kind     DnsRuleType
+		kind     DNSRuleType
 		expected bool
 	}{
-		{"Suffix", Suffix, true},
-		{"Keyword", Keyword, true},
-		{"Domain", Domain, true},
-		{"Unknown", DnsRuleType(-1), false},
+		{"Suffix", DNSRuleSuffix, true},
+		{"Keyword", DNSRuleKeyword, true},
+		{"Domain", DNSRuleDomain, true},
+		{"Unknown", DNSRuleType(-1), false},
 	}
 
 	for _, tt := range tests {
@@ -45,52 +26,57 @@ func TestTemplateKind_IsValid(t *testing.T) {
 	}
 }
 
-func TestTemplate_Validate(t *testing.T) {
+func TestDNSRule_Validate(t *testing.T) {
 	tests := []struct {
 		name     string
-		template DnsRule
+		rule     DNSRule
 		expected *apperr.Err
 	}{
-		{"Template_Suffix", DnsRule{kind: Suffix, domain: ".com"}, nil},
-		{"Template_Keyword", DnsRule{kind: Keyword, domain: "google"}, nil},
-		{"Template_Domain", DnsRule{kind: Domain, domain: "google.com"}, nil},
-		{"Template_Empty", DnsRule{kind: Suffix, domain: ""}, errEmptyDomain},
-		{"Template_WithSpace", DnsRule{kind: Keyword, domain: "google com"}, errDomainHasSpaces("google com")},
-		{"Template_WithLineBreak", DnsRule{kind: Keyword, domain: "google\ncom"}, errDomainHasSpaces("google\ncom")},
-		{"Template_WithTab", DnsRule{kind: Keyword, domain: "google\tcom"}, errDomainHasSpaces("google\tcom")},
-		{"Kind_Invalid", DnsRule{kind: DnsRuleType(-1), domain: "google.com"}, errInvalidRuleType},
-		{"Domain_Invalid", DnsRule{kind: Domain, domain: ".com"}, errInvalidDomain(".com")},
+		{"Rule_Suffix_Proxy", DNSRule{kind: DNSRuleSuffix, mode: RouteProxy, domain: ".com"}, nil},
+		{"Rule_Keyword_Block", DNSRule{kind: DNSRuleKeyword, mode: RouteBlock, domain: "google"}, nil},
+		{"Rule_Domain_Direct", DNSRule{kind: DNSRuleDomain, mode: RouteDirect, domain: "google.com"}, nil},
+		{"Rule_Empty", DNSRule{kind: DNSRuleSuffix, mode: RouteProxy, domain: ""}, errEmptyDomain},
+		{"Rule_WithSpace", DNSRule{kind: DNSRuleKeyword, mode: RouteProxy, domain: "google com"}, errDomainHasSpaces("google com")},
+		{"Rule_WithLineBreak", DNSRule{kind: DNSRuleKeyword, mode: RouteProxy, domain: "google\ncom"}, errDomainHasSpaces("google\ncom")},
+		{"Rule_WithTab", DNSRule{kind: DNSRuleKeyword, mode: RouteProxy, domain: "google\tcom"}, errDomainHasSpaces("google\tcom")},
+		{"Kind_Invalid", DNSRule{kind: DNSRuleType(-1), mode: RouteProxy, domain: "google.com"}, errInvalidRuleType},
+		{"RouteMode_Invalid", DNSRule{kind: DNSRuleSuffix, mode: "Unknown", domain: "google.com"}, errUnknownRouteMode("Unknown")},
+		{"Domain_Invalid", DNSRule{kind: DNSRuleDomain, mode: RouteProxy, domain: ".com"}, errInvalidDomain(".com")},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.expected, tt.template.validate())
+			assert.Equal(t, tt.expected, tt.rule.validate())
 		})
 	}
 }
 
-func TestNewTemplate(t *testing.T) {
+func TestNewDNSRule(t *testing.T) {
 	tests := []struct {
 		name          string
-		kind          DnsRuleType
-		text          string
-		expected      *DnsRule
+		kind          DNSRuleType
+		mode          RouteMode
+		domain        string
+		expected      *DNSRule
 		expectedError *apperr.Err
 	}{
-		{"Template_Suffix", Suffix, " .Com ", &DnsRule{Suffix, ".com"}, nil},
-		{"Template_Domain", Domain, "Google.Com\n", &DnsRule{Domain, "google.com"}, nil},
-		{"Template_Keyword", Keyword, "google", &DnsRule{Keyword, "google"}, nil},
-		{"Template_Empty", Suffix, "", nil, errEmptyDomain},
-		{"Template_WhiteSpaceOnly", Keyword, " \n\r\t", nil, errEmptyDomain},
-		{"Template_WithSpace", Suffix, "google com", nil, errDomainHasSpaces("google com")},
-		{"Kind_Invalid", DnsRuleType(-1), "google.com", nil, errInvalidRuleType},
-		{"Domain_Invalid", Domain, "@com", nil, errInvalidDomain("@com")},
+		{"Suffix_Direct", DNSRuleSuffix, RouteDirect, " .Com ", &DNSRule{DNSRuleSuffix, RouteDirect, ".com"}, nil},
+		{"Suffix_Block", DNSRuleSuffix, RouteBlock, " .Com ", &DNSRule{DNSRuleSuffix, RouteBlock, ".com"}, nil},
+		{"Suffix_Proxy", DNSRuleSuffix, RouteProxy, " .Com ", &DNSRule{DNSRuleSuffix, RouteProxy, ".com"}, nil},
+		{"Domain_Proxy", DNSRuleDomain, RouteProxy, "Google.Com\n", &DNSRule{DNSRuleDomain, RouteProxy, "google.com"}, nil},
+		{"Keyword_Block", DNSRuleKeyword, RouteBlock, "google", &DNSRule{DNSRuleKeyword, RouteBlock, "google"}, nil},
+		{"EmptyDomain", DNSRuleSuffix, RouteProxy, "", nil, errEmptyDomain},
+		{"WhiteSpaceOnlyDomain", DNSRuleKeyword, RouteProxy, " \n\r\t", nil, errEmptyDomain},
+		{"DomainWithSpace", DNSRuleSuffix, RouteProxy, "google com", nil, errDomainHasSpaces("google com")},
+		{"Kind_Invalid", DNSRuleType(-1), RouteProxy, "google.com", nil, errInvalidRuleType},
+		{"RouteMode_Invalid", DNSRuleSuffix, "Unknown", "google.com", nil, errUnknownRouteMode("Unknown")},
+		{"Domain_Invalid", DNSRuleDomain, RouteProxy, "@com", nil, errInvalidDomain("@com")},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			template, err := NewDnsRule(tt.kind, tt.text)
-			assert.Equal(t, tt.expected, template)
+			rule, err := NewDNSRule(tt.kind, tt.mode, tt.domain)
+			assert.Equal(t, tt.expected, rule)
 			assert.Equal(t, tt.expectedError, err)
 		})
 	}

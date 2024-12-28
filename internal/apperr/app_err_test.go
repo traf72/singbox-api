@@ -21,7 +21,7 @@ func TestAppErr(t *testing.T) {
 			expectedMsg:  "Invalid input",
 			expectedCode: "VAL001",
 			expectedKind: Validation,
-			expectedErr:  "VAL001: Invalid input",
+			expectedErr:  "Invalid input",
 		},
 		{
 			name:         "Not Found Error",
@@ -29,7 +29,15 @@ func TestAppErr(t *testing.T) {
 			expectedMsg:  "Resource not found",
 			expectedCode: "NOT001",
 			expectedKind: NotFound,
-			expectedErr:  "NOT001: Resource not found",
+			expectedErr:  "Resource not found",
+		},
+		{
+			name:         "Conflict Error",
+			appErr:       NewConflictErr("CON001", "Conlict occurred"),
+			expectedMsg:  "Conlict occurred",
+			expectedCode: "CON001",
+			expectedKind: Conflict,
+			expectedErr:  "Conlict occurred",
 		},
 		{
 			name:         "Fatal Error",
@@ -37,7 +45,7 @@ func TestAppErr(t *testing.T) {
 			expectedMsg:  "Internal server failure",
 			expectedCode: "FAT001",
 			expectedKind: Fatal,
-			expectedErr:  "FAT001: Internal server failure",
+			expectedErr:  "Internal server failure",
 		},
 	}
 

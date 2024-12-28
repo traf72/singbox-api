@@ -32,13 +32,17 @@ type dnsConfig struct {
 	Servers          []dnsServer `json:"servers"`
 }
 
+type rule struct {
+	Domain        []string `json:"domain,omitempty"`
+	DomainKeyword []string `json:"domain_keyword,omitempty"`
+	DomainRegex   []string `json:"domain_regex,omitempty"`
+	DomainSuffix  []string `json:"domain_suffix,omitempty"`
+	Geosite       []string `json:"geosite,omitempty"`
+}
+
 type dnsRule struct {
-	Domain        []string `json:"domain"`
-	DomainKeyword []string `json:"domain_keyword"`
-	DomainRegex   []string `json:"domain_regex"`
-	DomainSuffix  []string `json:"domain_suffix"`
-	Geosite       []string `json:"geosite"`
-	Server        string   `json:"server"`
+	rule
+	Server string `json:"server"`
 }
 
 type dnsServer struct {
@@ -94,12 +98,10 @@ type routeConfig struct {
 }
 
 type routeRule struct {
-	Domain        []string `json:"domain"`
-	DomainKeyword []string `json:"domain_keyword"`
-	DomainRegex   []string `json:"domain_regex"`
-	DomainSuffix  []string `json:"domain_suffix"`
-	Geosite       []string `json:"geosite"`
-	Outbound      string   `json:"outbound"`
+	rule
+	IP_CIDR  []string `json:"ip_cidr,omitempty"`
+	Protocol string   `json:"protocol,omitempty"`
+	Outbound string   `json:"outbound"`
 }
 
 type configWithMetadata struct {
@@ -107,10 +109,10 @@ type configWithMetadata struct {
 	lastModified time.Time
 }
 
-var errEmptyPath = apperr.NewFatalErr("ConfigEmptyPath", "path to the configuration file is not specified")
+var errEmptyPath = apperr.NewFatalErr("Config_EmptyPath", "path to the configuration file is not specified")
 
 func errStatReading(err string) *apperr.Err {
-	return apperr.NewFatalErr("ConfigStatReadError", err)
+	return apperr.NewFatalErr("Config_StatReadError", err)
 }
 
 func load() (*configWithMetadata, *apperr.Err) {
@@ -126,14 +128,14 @@ func load() (*configWithMetadata, *apperr.Err) {
 
 	file, err := os.Open(path)
 	if err != nil {
-		return nil, apperr.NewFatalErr("ConfigOpenError", err.Error())
+		return nil, apperr.NewFatalErr("Config_OpenError", err.Error())
 	}
 	defer file.Close()
 
 	d := json.NewDecoder(file)
 	config := new(config)
 	if err := d.Decode(config); err != nil {
-		return nil, apperr.NewFatalErr("ConfigJsonDecodeError", err.Error())
+		return nil, apperr.NewFatalErr("Config_JsonDecodeError", err.Error())
 	}
 
 	return &configWithMetadata{config: config, lastModified: stat.ModTime()}, nil
@@ -153,7 +155,7 @@ func save(c *configWithMetadata) *apperr.Err {
 	}
 
 	if stat.ModTime() != c.lastModified {
-		return apperr.NewConflictErr("ConfigConflict", "The configuration has been modified by another request. Please try again.")
+		return apperr.NewConflictErr("Config_Conflict", "The configuration has been modified by another request. Please try again.")
 	}
 
 	saveMutex.Lock()
@@ -162,7 +164,7 @@ func save(c *configWithMetadata) *apperr.Err {
 	tempPath := path + ".tmp"
 	tmpFile, err := os.Create(tempPath)
 	if err != nil {
-		return apperr.NewFatalErr("ConfigTmpFileCreateError", err.Error())
+		return apperr.NewFatalErr("Config_TmpFileCreateError", err.Error())
 	}
 
 	removeTmpFile := func() {
@@ -179,12 +181,12 @@ func save(c *configWithMetadata) *apperr.Err {
 	encoder := json.NewEncoder(tmpFile)
 	encoder.SetIndent("", "    ")
 	if err := encoder.Encode(c.config); err != nil {
-		return apperr.NewFatalErr("ConfigJsonEncodeError", err.Error())
+		return apperr.NewFatalErr("Config_JsonEncodeError", err.Error())
 	}
 
 	tmpFile.Close()
 	if err := os.Rename(tempPath, path); err != nil {
-		return apperr.NewFatalErr("ConfigTmpFileRenameError", err.Error())
+		return apperr.NewFatalErr("Config_TmpFileRenameError", err.Error())
 	}
 
 	return nil

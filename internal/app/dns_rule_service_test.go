@@ -8,98 +8,156 @@ import (
 	"github.com/traf72/singbox-api/internal/core"
 )
 
-func TestParseDnsType(t *testing.T) {
+func TestParseDNSType(t *testing.T) {
 	tests := []struct {
 		name        string
 		input       string
-		expected    core.DnsRuleType
+		expected    core.DNSRuleType
 		expectedErr *apperr.Err
 	}{
-		{"Keyword", "keyword", core.Keyword, nil},
-		{"Keyword_TrimSpaces", "  keyword\n", core.Keyword, nil},
-		{"Domain", "domain", core.Suffix, nil},
-		{"Domain_TrimSpaces", "\tdomain  \n", core.Suffix, nil},
-		{"EmptyInput", "", -1, errEmptyDnsRuleType},
-		{"SpaceOnlyInput", " \n\r\t", -1, errEmptyDnsRuleType},
-		{"UnknownType", "unknown", -1, errUnknownDnsRuleType("unknown")},
+		{"Keyword", "keyword", core.DNSRuleKeyword, nil},
+		{"Keyword_TrimSpaces_LowerCase", "  KEYWORD\n", core.DNSRuleKeyword, nil},
+		{"Domain", "domain", core.DNSRuleSuffix, nil},
+		{"Domain_TrimSpaces", "\tdomain  \n", core.DNSRuleSuffix, nil},
+		{"EmptyInput", "", -1, errEmptyType},
+		{"SpaceOnlyInput", " \n\r\t", -1, errEmptyType},
+		{"UnknownType", "unknown", -1, errUnknownType("unknown")},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := parseDnsType(tt.input)
+			result, err := parseDNSType(tt.input)
 			assert.Equal(t, tt.expected, result)
 			assert.Equal(t, tt.expectedErr, err)
 		})
 	}
 }
 
-func TestParse(t *testing.T) {
+func TestParseRouteMode(t *testing.T) {
+	tests := []struct {
+		name        string
+		input       string
+		expected    core.RouteMode
+		expectedErr *apperr.Err
+	}{
+		{"Proxy", "proxy", core.RouteProxy, nil},
+		{"Proxy_TrimSpaces_LowerCase", "  PROXY\n", core.RouteProxy, nil},
+		{"Block", "domain", core.RouteBlock, nil},
+		{"Direct", "domain", core.RouteDirect, nil},
+		{"EmptyInput", "", "", errEmptyRouteMode},
+		{"SpaceOnlyInput", " \n\r\t", "", errEmptyRouteMode},
+		{"UnknownMode", "unknown", "", errUnknownRouteMode("unknown")},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := parseRouteMode(tt.input)
+			assert.Equal(t, tt.expected, result)
+			assert.Equal(t, tt.expectedErr, err)
+		})
+	}
+}
+
+func TestToDNSRule(t *testing.T) {
 	tests := []struct {
 		name          string
-		input         string
-		expected      *core.DnsRule
+		rule          *DNSRuleDTO
+		expected      *core.DNSRule
 		expectedError *apperr.Err
 	}{
 		{
-			name:          "Domain",
-			input:         "GOOGLE.com",
-			expected:      func() *core.DnsRule { t, _ := core.NewDnsRule(core.Domain, "google.com"); return t }(),
+			name: "Domain_Proxy_TrimSpace_LowerCase",
+			rule: &DNSRuleDTO{Domain: "GOOGLE.com", RouteMode: "\t PROXY\n"},
+			expected: func() *core.DNSRule {
+				t, _ := core.NewDNSRule(core.DNSRuleDomain, core.RouteProxy, "google.com")
+				return t
+			}(),
 			expectedError: nil,
 		},
 		{
-			name:          "Suffix",
-			input:         "DOMAIN:mail.google.com",
-			expected:      func() *core.DnsRule { t, _ := core.NewDnsRule(core.Suffix, "mail.google.com"); return t }(),
+			name: "Suffix_Block",
+			rule: &DNSRuleDTO{Domain: "DOMAIN:mail.google.com", RouteMode: "block"},
+			expected: func() *core.DNSRule {
+				t, _ := core.NewDNSRule(core.DNSRuleSuffix, core.RouteBlock, "mail.google.com")
+				return t
+			}(),
 			expectedError: nil,
 		},
 		{
-			name:          "Keyword",
-			input:         "\t KEYworD:Google \n",
-			expected:      func() *core.DnsRule { t, _ := core.NewDnsRule(core.Keyword, "google"); return t }(),
+			name: "Keyword_Direct",
+			rule: &DNSRuleDTO{Domain: "keyword:Google", RouteMode: "direct"},
+			expected: func() *core.DNSRule {
+				t, _ := core.NewDNSRule(core.DNSRuleKeyword, core.RouteDirect, "google")
+				return t
+			}(),
 			expectedError: nil,
 		},
 		{
-			name:          "EmptyInput",
-			input:         "",
+			name:          "Rule_Empty",
+			rule:          &DNSRuleDTO{Domain: "", RouteMode: "direct"},
 			expected:      nil,
 			expectedError: errEmptyRule,
 		},
 		{
-			name:          "SpaceOnlyInput",
-			input:         "\r\n\r ",
+			name:          "Domain_SpaceOnly",
+			rule:          &DNSRuleDTO{Domain: "\r\n\r ", RouteMode: "direct"},
 			expected:      nil,
 			expectedError: errEmptyRule,
 		},
 		{
-			name:          "TooManyParts",
-			input:         "domain:google.com:extra",
+			name:          "Domain_TooManyParts",
+			rule:          &DNSRuleDTO{Domain: "domain:google.com:extra", RouteMode: "direct"},
 			expected:      nil,
 			expectedError: errTooManyParts("domain:google.com:extra"),
 		},
 		{
-			name:          "EmptyDnsRuleType",
-			input:         ":google.com",
+			name:          "RuleType_Empty",
+			rule:          &DNSRuleDTO{Domain: ":google.com", RouteMode: "direct"},
 			expected:      nil,
-			expectedError: errEmptyDnsRuleType,
+			expectedError: errEmptyType,
 		},
 		{
-			name:          "UnknownDnsRuleType",
-			input:         "bad:google.com",
+			name:          "RuleType_SpaceOnly",
+			rule:          &DNSRuleDTO{Domain: "\t\r\n :google.com", RouteMode: "direct"},
 			expected:      nil,
-			expectedError: errUnknownDnsRuleType("bad"),
+			expectedError: errEmptyType,
 		},
 		{
-			name:          "EmptyDomain",
-			input:         "domain:",
+			name:          "RuleType_Unknown",
+			rule:          &DNSRuleDTO{Domain: "bad:google.com", RouteMode: "direct"},
 			expected:      nil,
-			expectedError: apperr.NewValidationErr("EmptyDomain", "domain is empty"),
+			expectedError: errUnknownType("bad"),
+		},
+		{
+			name:          "RouteMode_Empty",
+			rule:          &DNSRuleDTO{Domain: "domain:google.com", RouteMode: ""},
+			expected:      nil,
+			expectedError: errEmptyRouteMode,
+		},
+		{
+			name:          "RouteMode_SpaceOnly",
+			rule:          &DNSRuleDTO{Domain: "domain:google.com", RouteMode: "\r\n\t "},
+			expected:      nil,
+			expectedError: errEmptyRouteMode,
+		},
+		{
+			name:          "RouteMode_Unknown",
+			rule:          &DNSRuleDTO{Domain: "domain:google.com", RouteMode: "bad"},
+			expected:      nil,
+			expectedError: errUnknownRouteMode("bad"),
+		},
+		{
+			name:          "Domain_Empty",
+			rule:          &DNSRuleDTO{Domain: "domain:", RouteMode: "direct"},
+			expected:      nil,
+			expectedError: apperr.NewValidationErr("DNSRule_EmptyDomain", "domain is empty"),
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := parse(tt.input)
-			assert.Equal(t, tt.expected, result)
+			r, err := tt.rule.toDNSRule()
+			assert.Equal(t, tt.expected, r)
 			assert.Equal(t, tt.expectedError, err)
 		})
 	}

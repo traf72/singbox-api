@@ -2,27 +2,21 @@ package handlers
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/traf72/singbox-api/internal/api"
 	"github.com/traf72/singbox-api/internal/app"
 	"github.com/traf72/singbox-api/internal/utils"
 )
 
-func addDnsRule(w http.ResponseWriter, r *http.Request) {
-	var dnsRule string
+func addDNSRule(w http.ResponseWriter, r *http.Request) {
+	dnsReq := new(app.DNSRuleDTO)
 
-	if err := utils.ParseJson(r.Body, &dnsRule); err != nil {
+	if err := utils.ParseJson(r.Body, dnsReq); err != nil {
 		api.SendBadRequest(w, err.Error())
 		return
 	}
 
-	if strings.TrimSpace(dnsRule) == "" {
-		api.SendBadRequest(w, "DNS rule must not be empty")
-		return
-	}
-
-	if err := app.AddDnsRule(dnsRule); err != nil {
+	if err := app.AddDNSRule(dnsReq); err != nil {
 		api.SendError(w, err)
 		return
 	}
@@ -30,6 +24,6 @@ func addDnsRule(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-func AddDnsRuleHandler() http.Handler {
-	return NewHandlerFunc(addDnsRule).WithJsonRequest().handler
+func AddDNSRuleHandler() http.Handler {
+	return NewHandlerFunc(addDNSRule).WithJsonRequest().handler
 }
