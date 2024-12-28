@@ -76,10 +76,14 @@ func parseDNSType(input string) (core.DNSRuleType, *apperr.Err) {
 	}
 
 	switch strings.ToLower(trimmed) {
+	case "full":
+		return core.DNSRuleDomain, nil
 	case "keyword":
 		return core.DNSRuleKeyword, nil
 	case "domain":
 		return core.DNSRuleSuffix, nil
+	case "regexp":
+		return core.DNSRuleRegex, nil
 	default:
 		return -1, errUnknownType(input)
 	}

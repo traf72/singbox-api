@@ -16,6 +16,7 @@ func TestDNSRuleType_IsValid(t *testing.T) {
 		{"Suffix", DNSRuleSuffix, true},
 		{"Keyword", DNSRuleKeyword, true},
 		{"Domain", DNSRuleDomain, true},
+		{"Regex", DNSRuleRegex, true},
 		{"Unknown", DNSRuleType(-1), false},
 	}
 
@@ -35,6 +36,7 @@ func TestDNSRule_Validate(t *testing.T) {
 		{"Rule_Suffix_Proxy", DNSRule{kind: DNSRuleSuffix, mode: RouteProxy, domain: ".com"}, nil},
 		{"Rule_Keyword_Block", DNSRule{kind: DNSRuleKeyword, mode: RouteBlock, domain: "google"}, nil},
 		{"Rule_Domain_Direct", DNSRule{kind: DNSRuleDomain, mode: RouteDirect, domain: "google.com"}, nil},
+		{"Rule_Regexp_Proxy", DNSRule{kind: DNSRuleRegex, mode: RouteProxy, domain: "you.*be"}, nil},
 		{"Rule_Empty", DNSRule{kind: DNSRuleSuffix, mode: RouteProxy, domain: ""}, errEmptyDomain},
 		{"Rule_WithSpace", DNSRule{kind: DNSRuleKeyword, mode: RouteProxy, domain: "google com"}, errDomainHasSpaces("google com")},
 		{"Rule_WithLineBreak", DNSRule{kind: DNSRuleKeyword, mode: RouteProxy, domain: "google\ncom"}, errDomainHasSpaces("google\ncom")},
@@ -42,6 +44,7 @@ func TestDNSRule_Validate(t *testing.T) {
 		{"Kind_Invalid", DNSRule{kind: DNSRuleType(-1), mode: RouteProxy, domain: "google.com"}, errInvalidRuleType},
 		{"RouteMode_Invalid", DNSRule{kind: DNSRuleSuffix, mode: "Unknown", domain: "google.com"}, errUnknownRouteMode("Unknown")},
 		{"Domain_Invalid", DNSRule{kind: DNSRuleDomain, mode: RouteProxy, domain: ".com"}, errInvalidDomain(".com")},
+		{"Regex_Invalid", DNSRule{kind: DNSRuleRegex, mode: RouteProxy, domain: "[a-z"}, errInvalidRegexp("[a-z")},
 	}
 
 	for _, tt := range tests {

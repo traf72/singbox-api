@@ -11,10 +11,10 @@ import (
 )
 
 type config struct {
-	Log       logConfig   `json:"log"`
+	Log       *logConfig  `json:"log"`
 	DNS       dnsConfig   `json:"dns"`
-	Inbounds  []inbound   `json:"inbounds"`
-	Outbounds []outbound  `json:"outbounds"`
+	Inbounds  []*inbound  `json:"inbounds"`
+	Outbounds []*outbound `json:"outbounds"`
 	Route     routeConfig `json:"route"`
 }
 
@@ -47,37 +47,44 @@ type dnsRule struct {
 
 type dnsServer struct {
 	Address         string `json:"address"`
-	AddressResolver string `json:"address_resolver"`
-	Detour          string `json:"detour"`
+	AddressResolver string `json:"address_resolver,omitempty"`
+	Detour          string `json:"detour,omitempty"`
 	Tag             string `json:"tag"`
 }
 
 type inbound struct {
-	Listen                   string `json:"listen"`
-	ListenPort               int    `json:"listen_port"`
-	Sniff                    bool   `json:"sniff"`
-	SniffOverrideDestination bool   `json:"sniff_override_destination"`
-	Tag                      string `json:"tag"`
-	Type                     string `json:"type"`
+	Listen                   string   `json:"listen,omitempty"`
+	ListenPort               int      `json:"listen_port,omitempty"`
+	AutoRoute                bool     `json:"auto_route,omitempty"`
+	EndpointIndependentNAT   *bool    `json:"endpoint_independent_nat,omitempty"`
+	Address                  []string `json:"address,omitempty"`
+	InterfaceName            string   `json:"interface_name,omitempty"`
+	MTU                      int      `json:"mtu,omitempty"`
+	Stack                    string   `json:"stack,omitempty"`
+	StrictRoute              *bool    `json:"strict_route,omitempty"`
+	Sniff                    bool     `json:"sniff"`
+	SniffOverrideDestination bool     `json:"sniff_override_destination"`
+	Tag                      string   `json:"tag"`
+	Type                     string   `json:"type"`
 }
 
 type outbound struct {
-	Flow           string    `json:"flow"`
-	PacketEncoding string    `json:"packet_encoding"`
-	Server         string    `json:"server"`
-	ServerPort     int       `json:"server_port"`
-	Tag            string    `json:"tag"`
-	TLS            tlsConfig `json:"tls"`
-	Type           string    `json:"type"`
-	UUID           string    `json:"uuid"`
+	Flow           string     `json:"flow,omitempty"`
+	PacketEncoding string     `json:"packet_encoding,omitempty"`
+	Server         string     `json:"server,omitempty"`
+	ServerPort     int        `json:"server_port,omitempty"`
+	Tag            string     `json:"tag"`
+	TLS            *tlsConfig `json:"tls,omitempty"`
+	Type           string     `json:"type"`
+	UUID           string     `json:"uuid,omitempty"`
 }
 
 type tlsConfig struct {
-	ALPN       []string      `json:"alpn"`
-	Enabled    bool          `json:"enabled"`
-	Reality    realityConfig `json:"reality"`
-	ServerName string        `json:"server_name"`
-	UTLS       utlsConfig    `json:"utls"`
+	ALPN       []string       `json:"alpn"`
+	Enabled    bool           `json:"enabled"`
+	Reality    *realityConfig `json:"reality,omitempty"`
+	ServerName string         `json:"server_name"`
+	UTLS       *utlsConfig    `json:"utls,omitempty"`
 }
 
 type realityConfig struct {
@@ -100,8 +107,8 @@ type routeConfig struct {
 type routeRule struct {
 	rule
 	IP_CIDR  []string `json:"ip_cidr,omitempty"`
-	Protocol string   `json:"protocol,omitempty"`
 	Outbound string   `json:"outbound"`
+	Protocol string   `json:"protocol,omitempty"`
 }
 
 type configWithMetadata struct {
@@ -180,6 +187,7 @@ func save(c *configWithMetadata) *apperr.Err {
 
 	encoder := json.NewEncoder(tmpFile)
 	encoder.SetIndent("", "    ")
+	encoder.SetEscapeHTML(false)
 	if err := encoder.Encode(c.config); err != nil {
 		return apperr.NewFatalErr("Config_JsonEncodeError", err.Error())
 	}

@@ -15,10 +15,14 @@ func TestParseDNSType(t *testing.T) {
 		expected    core.DNSRuleType
 		expectedErr *apperr.Err
 	}{
+		{"Full", "full", core.DNSRuleDomain, nil},
+		{"Full_TrimSpaces_LowerCase", "\tFull\r\n", core.DNSRuleDomain, nil},
 		{"Keyword", "keyword", core.DNSRuleKeyword, nil},
 		{"Keyword_TrimSpaces_LowerCase", "  KEYWORD\n", core.DNSRuleKeyword, nil},
 		{"Domain", "domain", core.DNSRuleSuffix, nil},
 		{"Domain_TrimSpaces", "\tdomain  \n", core.DNSRuleSuffix, nil},
+		{"Regex", "regexp", core.DNSRuleRegex, nil},
+		{"Regex_TrimSpaces", "\tregexp\r\n", core.DNSRuleRegex, nil},
 		{"EmptyInput", "", -1, errEmptyType},
 		{"SpaceOnlyInput", " \n\r\t", -1, errEmptyType},
 		{"UnknownType", "unknown", -1, errUnknownType("unknown")},
@@ -42,8 +46,8 @@ func TestParseRouteMode(t *testing.T) {
 	}{
 		{"Proxy", "proxy", core.RouteProxy, nil},
 		{"Proxy_TrimSpaces_LowerCase", "  PROXY\n", core.RouteProxy, nil},
-		{"Block", "domain", core.RouteBlock, nil},
-		{"Direct", "domain", core.RouteDirect, nil},
+		{"Block", "block", core.RouteBlock, nil},
+		{"Direct", "direct", core.RouteDirect, nil},
 		{"EmptyInput", "", "", errEmptyRouteMode},
 		{"SpaceOnlyInput", " \n\r\t", "", errEmptyRouteMode},
 		{"UnknownMode", "unknown", "", errUnknownRouteMode("unknown")},
@@ -75,6 +79,15 @@ func TestToDNSRule(t *testing.T) {
 			expectedError: nil,
 		},
 		{
+			name: "Domain_Full_Direct",
+			rule: &DNSRuleDTO{Domain: "full:google.com", RouteMode: "direct"},
+			expected: func() *core.DNSRule {
+				t, _ := core.NewDNSRule(core.DNSRuleDomain, core.RouteDirect, "google.com")
+				return t
+			}(),
+			expectedError: nil,
+		},
+		{
 			name: "Suffix_Block",
 			rule: &DNSRuleDTO{Domain: "DOMAIN:mail.google.com", RouteMode: "block"},
 			expected: func() *core.DNSRule {
@@ -88,6 +101,15 @@ func TestToDNSRule(t *testing.T) {
 			rule: &DNSRuleDTO{Domain: "keyword:Google", RouteMode: "direct"},
 			expected: func() *core.DNSRule {
 				t, _ := core.NewDNSRule(core.DNSRuleKeyword, core.RouteDirect, "google")
+				return t
+			}(),
+			expectedError: nil,
+		},
+		{
+			name: "Regex_Proxy",
+			rule: &DNSRuleDTO{Domain: "regexp:you.*be", RouteMode: "proxy"},
+			expected: func() *core.DNSRule {
+				t, _ := core.NewDNSRule(core.DNSRuleRegex, core.RouteProxy, "you.*be")
 				return t
 			}(),
 			expectedError: nil,

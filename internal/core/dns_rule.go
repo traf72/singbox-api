@@ -22,6 +22,10 @@ func errInvalidDomain(d string) *apperr.Err {
 	return apperr.NewValidationErr("DNSRule_InvalidDomain", fmt.Sprintf("invalid domain '%s'", d))
 }
 
+func errInvalidRegexp(r string) *apperr.Err {
+	return apperr.NewValidationErr("DNSRule_InvalidRegexp", fmt.Sprintf("invalid regexp '%s'", r))
+}
+
 func errUnknownRouteMode(m RouteMode) *apperr.Err {
 	return apperr.NewValidationErr("DNSRule_UnknownRouteMode", fmt.Sprintf("unknown route mode '%s'", m))
 }
@@ -32,11 +36,12 @@ const (
 	DNSRuleSuffix DNSRuleType = iota
 	DNSRuleKeyword
 	DNSRuleDomain
+	DNSRuleRegex
 )
 
 func (k DNSRuleType) isValid() bool {
 	switch k {
-	case DNSRuleSuffix, DNSRuleKeyword, DNSRuleDomain:
+	case DNSRuleSuffix, DNSRuleKeyword, DNSRuleDomain, DNSRuleRegex:
 		return true
 	default:
 		return false
@@ -80,6 +85,13 @@ func (t *DNSRule) validate() *apperr.Err {
 
 	if t.kind == DNSRuleDomain && !domainRegex.MatchString(t.domain) {
 		return errInvalidDomain(t.domain)
+	}
+
+	if t.kind == DNSRuleRegex {
+		_, err := regexp.Compile(t.domain)
+		if err != nil {
+			return errInvalidRegexp(t.domain)
+		}
 	}
 
 	return nil
