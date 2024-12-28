@@ -188,6 +188,8 @@ func getRouteRuleSlice(t DNSRuleType, r *rule) *[]string {
 		return &r.DomainKeyword
 	case DNSRuleDomain:
 		return &r.Domain
+	case DNSRuleRegex:
+		return &r.DomainRegex
 	default:
 		return nil
 	}

@@ -37,7 +37,6 @@ type rule struct {
 	DomainKeyword []string `json:"domain_keyword,omitempty"`
 	DomainRegex   []string `json:"domain_regex,omitempty"`
 	DomainSuffix  []string `json:"domain_suffix,omitempty"`
-	Geosite       []string `json:"geosite,omitempty"`
 }
 
 type dnsRule struct {
