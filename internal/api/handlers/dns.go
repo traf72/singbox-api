@@ -4,19 +4,20 @@ import (
 	"net/http"
 
 	"github.com/traf72/singbox-api/internal/api"
-	"github.com/traf72/singbox-api/internal/app"
+	"github.com/traf72/singbox-api/internal/api/middleware"
+	"github.com/traf72/singbox-api/internal/app/dns"
 	"github.com/traf72/singbox-api/internal/utils"
 )
 
 func addDNSRule(w http.ResponseWriter, r *http.Request) {
-	dnsReq := new(app.DNSRuleDTO)
+	dnsReq := new(dns.Rule)
 
 	if err := utils.ParseJson(r.Body, dnsReq); err != nil {
 		api.SendBadRequest(w, err.Error())
 		return
 	}
 
-	if err := app.AddDNSRule(dnsReq); err != nil {
+	if err := dns.AddRule(dnsReq); err != nil {
 		api.SendError(w, err)
 		return
 	}
@@ -25,14 +26,14 @@ func addDNSRule(w http.ResponseWriter, r *http.Request) {
 }
 
 func removeDNSRule(w http.ResponseWriter, r *http.Request) {
-	dnsReq := new(app.DNSRuleDTO)
+	dnsReq := new(dns.Rule)
 
 	if err := utils.ParseJson(r.Body, dnsReq); err != nil {
 		api.SendBadRequest(w, err.Error())
 		return
 	}
 
-	if err := app.RemoveDNSRule(dnsReq); err != nil {
+	if err := dns.RemoveRule(dnsReq); err != nil {
 		api.SendError(w, err)
 		return
 	}
@@ -41,9 +42,9 @@ func removeDNSRule(w http.ResponseWriter, r *http.Request) {
 }
 
 func AddDNSRuleHandler() http.Handler {
-	return NewHandlerFunc(addDNSRule).WithJsonRequest().handler
+	return middleware.NewHandlerFunc(addDNSRule).WithJsonRequest().Build()
 }
 
 func RemoveDNSRuleHandler() http.Handler {
-	return NewHandlerFunc(removeDNSRule).WithJsonRequest().handler
+	return middleware.NewHandlerFunc(removeDNSRule).WithJsonRequest().Build()
 }

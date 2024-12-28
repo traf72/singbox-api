@@ -1,4 +1,4 @@
-package core
+package config
 
 import (
 	"encoding/json"
@@ -10,37 +10,37 @@ import (
 	"github.com/traf72/singbox-api/internal/apperr"
 )
 
-type config struct {
-	Log       *logConfig  `json:"log"`
-	DNS       dnsConfig   `json:"dns"`
+type Conf struct {
+	Log       *logging    `json:"log"`
+	DNS       dns         `json:"dns"`
 	Inbounds  []*inbound  `json:"inbounds"`
 	Outbounds []*outbound `json:"outbounds"`
-	Route     routeConfig `json:"route"`
+	Route     route       `json:"route"`
 }
 
-type logConfig struct {
+type logging struct {
 	Disabled  bool   `json:"disabled"`
 	Level     string `json:"level"`
 	Output    string `json:"output"`
 	Timestamp bool   `json:"timestamp"`
 }
 
-type dnsConfig struct {
+type dns struct {
 	IndependentCache bool        `json:"independent_cache"`
 	Final            string      `json:"final"`
-	Rules            []dnsRule   `json:"rules"`
+	Rules            []DNSRule   `json:"rules"`
 	Servers          []dnsServer `json:"servers"`
 }
 
-type rule struct {
+type Rule struct {
 	Domain        []string `json:"domain,omitempty"`
 	DomainKeyword []string `json:"domain_keyword,omitempty"`
 	DomainRegex   []string `json:"domain_regex,omitempty"`
 	DomainSuffix  []string `json:"domain_suffix,omitempty"`
 }
 
-type dnsRule struct {
-	rule
+type DNSRule struct {
+	Rule
 	Server string `json:"server"`
 }
 
@@ -68,50 +68,50 @@ type inbound struct {
 }
 
 type outbound struct {
-	Flow           string     `json:"flow,omitempty"`
-	PacketEncoding string     `json:"packet_encoding,omitempty"`
-	Server         string     `json:"server,omitempty"`
-	ServerPort     int        `json:"server_port,omitempty"`
-	Tag            string     `json:"tag"`
-	TLS            *tlsConfig `json:"tls,omitempty"`
-	Type           string     `json:"type"`
-	UUID           string     `json:"uuid,omitempty"`
+	Flow           string `json:"flow,omitempty"`
+	PacketEncoding string `json:"packet_encoding,omitempty"`
+	Server         string `json:"server,omitempty"`
+	ServerPort     int    `json:"server_port,omitempty"`
+	Tag            string `json:"tag"`
+	TLS            *tls   `json:"tls,omitempty"`
+	Type           string `json:"type"`
+	UUID           string `json:"uuid,omitempty"`
 }
 
-type tlsConfig struct {
-	ALPN       []string       `json:"alpn"`
-	Enabled    bool           `json:"enabled"`
-	Reality    *realityConfig `json:"reality,omitempty"`
-	ServerName string         `json:"server_name"`
-	UTLS       *utlsConfig    `json:"utls,omitempty"`
+type tls struct {
+	ALPN       []string `json:"alpn"`
+	Enabled    bool     `json:"enabled"`
+	Reality    *reality `json:"reality,omitempty"`
+	ServerName string   `json:"server_name"`
+	UTLS       *utls    `json:"utls,omitempty"`
 }
 
-type realityConfig struct {
+type reality struct {
 	Enabled   bool   `json:"enabled"`
 	PublicKey string `json:"public_key"`
 	ShortID   string `json:"short_id"`
 }
 
-type utlsConfig struct {
+type utls struct {
 	Enabled     bool   `json:"enabled"`
 	Fingerprint string `json:"fingerprint"`
 }
 
-type routeConfig struct {
+type route struct {
 	AutoDetectInterface bool        `json:"auto_detect_interface"`
 	Final               string      `json:"final"`
-	Rules               []routeRule `json:"rules"`
+	Rules               []RouteRule `json:"rules"`
 }
 
-type routeRule struct {
-	rule
+type RouteRule struct {
+	Rule
 	IP_CIDR  []string `json:"ip_cidr,omitempty"`
 	Outbound string   `json:"outbound"`
 	Protocol string   `json:"protocol,omitempty"`
 }
 
-type configWithMetadata struct {
-	config       *config
+type Config struct {
+	Conf         *Conf
 	lastModified time.Time
 }
 
@@ -121,7 +121,7 @@ func errStatReading(err string) *apperr.Err {
 	return apperr.NewFatalErr("Config_StatReadError", err)
 }
 
-func load() (*configWithMetadata, *apperr.Err) {
+func Load() (*Config, *apperr.Err) {
 	path := getPath()
 	if path == "" {
 		return nil, errEmptyPath
@@ -139,17 +139,17 @@ func load() (*configWithMetadata, *apperr.Err) {
 	defer file.Close()
 
 	d := json.NewDecoder(file)
-	config := new(config)
-	if err := d.Decode(config); err != nil {
+	c := new(Conf)
+	if err := d.Decode(c); err != nil {
 		return nil, apperr.NewFatalErr("Config_JsonDecodeError", err.Error())
 	}
 
-	return &configWithMetadata{config: config, lastModified: stat.ModTime()}, nil
+	return &Config{Conf: c, lastModified: stat.ModTime()}, nil
 }
 
 var saveMutex sync.Mutex
 
-func save(c *configWithMetadata) *apperr.Err {
+func Save(c *Config) *apperr.Err {
 	path := getPath()
 	if path == "" {
 		return errEmptyPath
@@ -161,7 +161,7 @@ func save(c *configWithMetadata) *apperr.Err {
 	}
 
 	if stat.ModTime() != c.lastModified {
-		return apperr.NewConflictErr("Config_Conflict", "The configuration has been modified by another request. Please try again.")
+		return apperr.NewConflictErr("Config_Conflict", "the configuration has been modified by another request")
 	}
 
 	saveMutex.Lock()
@@ -187,7 +187,7 @@ func save(c *configWithMetadata) *apperr.Err {
 	encoder := json.NewEncoder(tmpFile)
 	encoder.SetIndent("", "    ")
 	encoder.SetEscapeHTML(false)
-	if err := encoder.Encode(c.config); err != nil {
+	if err := encoder.Encode(c.Conf); err != nil {
 		return apperr.NewFatalErr("Config_JsonEncodeError", err.Error())
 	}
 

@@ -1,4 +1,4 @@
-package core
+package dns
 
 import (
 	"fmt"
@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/traf72/singbox-api/internal/apperr"
+	"github.com/traf72/singbox-api/internal/config"
 )
 
 var (
@@ -19,44 +20,40 @@ func errDomainHasSpaces(t string) *apperr.Err {
 }
 
 func errInvalidDomain(d string) *apperr.Err {
-	return apperr.NewValidationErr("DNSRule_InvalidDomain", fmt.Sprintf("invalid domain '%s'", d))
+	return apperr.NewValidationErr("DNSRule_InvalidDomain", fmt.Sprintf("domain '%s' is invalid", d))
 }
 
 func errInvalidRegexp(r string) *apperr.Err {
-	return apperr.NewValidationErr("DNSRule_InvalidRegexp", fmt.Sprintf("invalid regexp '%s'", r))
+	return apperr.NewValidationErr("DNSRule_InvalidRegexp", fmt.Sprintf("regexp is '%s' invalid", r))
 }
 
-func errUnknownRouteMode(m RouteMode) *apperr.Err {
-	return apperr.NewValidationErr("DNSRule_UnknownRouteMode", fmt.Sprintf("unknown route mode '%s'", m))
-}
-
-type DNSRuleType int
+type RuleType int
 
 const (
-	DNSRuleSuffix DNSRuleType = iota
-	DNSRuleKeyword
-	DNSRuleDomain
-	DNSRuleRegex
+	Suffix RuleType = iota
+	Keyword
+	Domain
+	Regex
 )
 
-func (k DNSRuleType) isValid() bool {
+func (k RuleType) isValid() bool {
 	switch k {
-	case DNSRuleSuffix, DNSRuleKeyword, DNSRuleDomain, DNSRuleRegex:
+	case Suffix, Keyword, Domain, Regex:
 		return true
 	default:
 		return false
 	}
 }
 
-type DNSRule struct {
-	kind   DNSRuleType
-	mode   RouteMode
+type Rule struct {
+	kind   RuleType
+	mode   config.RouteMode
 	domain string
 }
 
-func NewDNSRule(kind DNSRuleType, mode RouteMode, domain string) (*DNSRule, *apperr.Err) {
+func NewRule(kind RuleType, mode config.RouteMode, domain string) (*Rule, *apperr.Err) {
 	domain = strings.ToLower(strings.TrimSpace(domain))
-	t := &DNSRule{kind: kind, mode: mode, domain: domain}
+	t := &Rule{kind: kind, mode: mode, domain: domain}
 	if err := t.validate(); err != nil {
 		return nil, err
 	}
@@ -66,13 +63,13 @@ func NewDNSRule(kind DNSRuleType, mode RouteMode, domain string) (*DNSRule, *app
 
 var domainRegex = regexp.MustCompile(`^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$`)
 
-func (t *DNSRule) validate() *apperr.Err {
+func (t *Rule) validate() *apperr.Err {
 	if !t.kind.isValid() {
 		return errInvalidRuleType
 	}
 
-	if !t.mode.isValid() {
-		return errUnknownRouteMode(t.mode)
+	if err := t.mode.Validate(); err != nil {
+		return apperr.NewValidationErr("DNSRule_InvalidRouteMode", err.Error())
 	}
 
 	if t.domain == "" {
@@ -83,11 +80,11 @@ func (t *DNSRule) validate() *apperr.Err {
 		return errDomainHasSpaces(t.domain)
 	}
 
-	if t.kind == DNSRuleDomain && !domainRegex.MatchString(t.domain) {
+	if t.kind == Domain && !domainRegex.MatchString(t.domain) {
 		return errInvalidDomain(t.domain)
 	}
 
-	if t.kind == DNSRuleRegex {
+	if t.kind == Regex {
 		_, err := regexp.Compile(t.domain)
 		if err != nil {
 			return errInvalidRegexp(t.domain)
@@ -97,21 +94,21 @@ func (t *DNSRule) validate() *apperr.Err {
 	return nil
 }
 
-var dnsRoute = map[RouteMode]string{
-	RouteDirect: "dns-direct",
-	RouteProxy:  "dns-remote",
-	RouteBlock:  "dns-block",
+var dnsRoute = map[config.RouteMode]string{
+	config.RouteDirect: "dns-direct",
+	config.RouteProxy:  "dns-remote",
+	config.RouteBlock:  "dns-block",
 }
 
-func AddDNSRule(r *DNSRule) *apperr.Err {
-	c, err := load()
+func AddRule(r *Rule) *apperr.Err {
+	c, err := config.Load()
 	if err != nil {
 		return err
 	}
 
-	added := addRule(r, c.config)
+	added := add(r, c.Conf)
 	if added {
-		if err := save(c); err != nil {
+		if err := config.Save(c); err != nil {
 			return err
 		}
 	}
@@ -119,13 +116,13 @@ func AddDNSRule(r *DNSRule) *apperr.Err {
 	return nil
 }
 
-func addRule(r *DNSRule, c *config) (added bool) {
-	addedToRoute := addRuleToRoute(r, c)
-	addedToDNS := addRuleToDNS(r, c)
+func add(r *Rule, c *config.Conf) (added bool) {
+	addedToRoute := addToRoute(r, c)
+	addedToDNS := addToDNS(r, c)
 	return addedToRoute || addedToDNS
 }
 
-func addRuleToRoute(r *DNSRule, c *config) bool {
+func addToRoute(r *Rule, c *config.Conf) bool {
 	rulesSlice := getRouteRules(r, c)
 	ruleIdx := slices.IndexFunc(*rulesSlice, func(d string) bool {
 		return strings.EqualFold(strings.TrimSpace(d), r.domain)
@@ -139,7 +136,7 @@ func addRuleToRoute(r *DNSRule, c *config) bool {
 	return false
 }
 
-func addRuleToDNS(r *DNSRule, c *config) bool {
+func addToDNS(r *Rule, c *config.Conf) bool {
 	rulesSlice := getDNSRules(r, c)
 	ruleIdx := slices.IndexFunc(*rulesSlice, func(d string) bool {
 		return strings.EqualFold(strings.TrimSpace(d), r.domain)
@@ -153,15 +150,15 @@ func addRuleToDNS(r *DNSRule, c *config) bool {
 	return false
 }
 
-func RemoveDNSRule(r *DNSRule) *apperr.Err {
-	c, err := load()
+func RemoveRule(r *Rule) *apperr.Err {
+	c, err := config.Load()
 	if err != nil {
 		return err
 	}
 
-	removed := removeRule(r, c.config)
+	removed := remove(r, c.Conf)
 	if removed {
-		if err := save(c); err != nil {
+		if err := config.Save(c); err != nil {
 			return err
 		}
 	}
@@ -169,13 +166,13 @@ func RemoveDNSRule(r *DNSRule) *apperr.Err {
 	return nil
 }
 
-func removeRule(r *DNSRule, c *config) (removed bool) {
+func remove(r *Rule, c *config.Conf) (removed bool) {
 	removedFromRoute := removeFromRoute(r, c)
 	removedFromDNS := removeFromDNS(r, c)
 	return removedFromRoute || removedFromDNS
 }
 
-func removeFromRoute(r *DNSRule, c *config) bool {
+func removeFromRoute(r *Rule, c *config.Conf) bool {
 	rulesSlice := getRouteRules(r, c)
 	ruleIdx := slices.IndexFunc(*rulesSlice, func(d string) bool {
 		return strings.EqualFold(strings.TrimSpace(d), r.domain)
@@ -189,7 +186,7 @@ func removeFromRoute(r *DNSRule, c *config) bool {
 	return true
 }
 
-func removeFromDNS(r *DNSRule, c *config) bool {
+func removeFromDNS(r *Rule, c *config.Conf) bool {
 	rulesSlice := getDNSRules(r, c)
 	ruleIdx := slices.IndexFunc(*rulesSlice, func(d string) bool {
 		return strings.EqualFold(strings.TrimSpace(d), r.domain)
@@ -203,50 +200,50 @@ func removeFromDNS(r *DNSRule, c *config) bool {
 	return true
 }
 
-func getRouteRules(r *DNSRule, c *config) *[]string {
+func getRouteRules(r *Rule, c *config.Conf) *[]string {
 	mode := string(r.mode)
-	ruleSetIdx := slices.IndexFunc(c.Route.Rules, func(rr routeRule) bool {
+	ruleSetIdx := slices.IndexFunc(c.Route.Rules, func(rr config.RouteRule) bool {
 		return rr.Outbound == mode
 	})
 
 	if ruleSetIdx == -1 {
-		c.Route.Rules = append(c.Route.Rules, routeRule{
+		c.Route.Rules = append(c.Route.Rules, config.RouteRule{
 			Outbound: mode,
-			rule:     rule{},
+			Rule:     config.Rule{},
 		})
 		ruleSetIdx = len(c.Route.Rules) - 1
 	}
 
 	ruleSet := &c.Route.Rules[ruleSetIdx]
-	return getRulesByType(r.kind, &ruleSet.rule)
+	return getRulesForType(r.kind, &ruleSet.Rule)
 }
 
-func getDNSRules(r *DNSRule, c *config) *[]string {
-	ruleSetIdx := slices.IndexFunc(c.DNS.Rules, func(dr dnsRule) bool {
+func getDNSRules(r *Rule, c *config.Conf) *[]string {
+	ruleSetIdx := slices.IndexFunc(c.DNS.Rules, func(dr config.DNSRule) bool {
 		return dr.Server == dnsRoute[r.mode]
 	})
 
 	if ruleSetIdx == -1 {
-		c.DNS.Rules = append(c.DNS.Rules, dnsRule{
+		c.DNS.Rules = append(c.DNS.Rules, config.DNSRule{
 			Server: dnsRoute[r.mode],
-			rule:   rule{},
+			Rule:   config.Rule{},
 		})
 		ruleSetIdx = len(c.Route.Rules) - 1
 	}
 
 	ruleSet := &c.DNS.Rules[ruleSetIdx]
-	return getRulesByType(r.kind, &ruleSet.rule)
+	return getRulesForType(r.kind, &ruleSet.Rule)
 }
 
-func getRulesByType(t DNSRuleType, r *rule) *[]string {
+func getRulesForType(t RuleType, r *config.Rule) *[]string {
 	switch t {
-	case DNSRuleSuffix:
+	case Suffix:
 		return &r.DomainSuffix
-	case DNSRuleKeyword:
+	case Keyword:
 		return &r.DomainKeyword
-	case DNSRuleDomain:
+	case Domain:
 		return &r.Domain
-	case DNSRuleRegex:
+	case Regex:
 		return &r.DomainRegex
 	default:
 		return nil

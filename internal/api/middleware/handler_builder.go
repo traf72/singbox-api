@@ -1,9 +1,7 @@
-package handlers
+package middleware
 
 import (
 	"net/http"
-
-	"github.com/traf72/singbox-api/internal/api/middleware"
 )
 
 type HttpHandler struct {
@@ -19,12 +17,12 @@ func NewHandlerFunc(hf http.HandlerFunc) *HttpHandler {
 }
 
 func (h *HttpHandler) WithJsonRequest() *HttpHandler {
-	h.handler = middleware.JsonRequest(h.handler)
+	h.handler = JsonRequest(h.handler)
 	return h
 }
 
 func (h *HttpHandler) WithRequestLogging() *HttpHandler {
-	h.handler = middleware.LogRequest(h.handler)
+	h.handler = LogRequest(h.handler)
 	return h
 }
 
