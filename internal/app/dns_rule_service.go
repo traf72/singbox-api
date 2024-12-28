@@ -119,3 +119,16 @@ func AddDNSRule(r *DNSRuleDTO) *apperr.Err {
 
 	return nil
 }
+
+func RemoveDNSRule(r *DNSRuleDTO) *apperr.Err {
+	dnsRule, err := r.toDNSRule()
+	if err != nil {
+		return err
+	}
+
+	if err = core.RemoveDNSRule(dnsRule); err != nil {
+		return err
+	}
+
+	return nil
+}

@@ -24,6 +24,26 @@ func addDNSRule(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
+func removeDNSRule(w http.ResponseWriter, r *http.Request) {
+	dnsReq := new(app.DNSRuleDTO)
+
+	if err := utils.ParseJson(r.Body, dnsReq); err != nil {
+		api.SendBadRequest(w, err.Error())
+		return
+	}
+
+	if err := app.RemoveDNSRule(dnsReq); err != nil {
+		api.SendError(w, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func AddDNSRuleHandler() http.Handler {
 	return NewHandlerFunc(addDNSRule).WithJsonRequest().handler
+}
+
+func RemoveDNSRuleHandler() http.Handler {
+	return NewHandlerFunc(removeDNSRule).WithJsonRequest().handler
 }

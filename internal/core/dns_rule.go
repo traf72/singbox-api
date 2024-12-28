@@ -126,6 +126,84 @@ func addRule(r *DNSRule, c *config) (added bool) {
 }
 
 func addRuleToRoute(r *DNSRule, c *config) bool {
+	rulesSlice := getRouteRules(r, c)
+	ruleIdx := slices.IndexFunc(*rulesSlice, func(d string) bool {
+		return strings.EqualFold(strings.TrimSpace(d), r.domain)
+	})
+
+	if ruleIdx == -1 {
+		*rulesSlice = append(*rulesSlice, r.domain)
+		return true
+	}
+
+	return false
+}
+
+func addRuleToDNS(r *DNSRule, c *config) bool {
+	rulesSlice := getDNSRules(r, c)
+	ruleIdx := slices.IndexFunc(*rulesSlice, func(d string) bool {
+		return strings.EqualFold(strings.TrimSpace(d), r.domain)
+	})
+
+	if ruleIdx == -1 {
+		*rulesSlice = append(*rulesSlice, r.domain)
+		return true
+	}
+
+	return false
+}
+
+func RemoveDNSRule(r *DNSRule) *apperr.Err {
+	c, err := load()
+	if err != nil {
+		return err
+	}
+
+	removed := removeRule(r, c.config)
+	if removed {
+		if err := save(c); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func removeRule(r *DNSRule, c *config) (removed bool) {
+	removedFromRoute := removeFromRoute(r, c)
+	removedFromDNS := removeFromDNS(r, c)
+	return removedFromRoute || removedFromDNS
+}
+
+func removeFromRoute(r *DNSRule, c *config) bool {
+	rulesSlice := getRouteRules(r, c)
+	ruleIdx := slices.IndexFunc(*rulesSlice, func(d string) bool {
+		return strings.EqualFold(strings.TrimSpace(d), r.domain)
+	})
+
+	if ruleIdx == -1 {
+		return false
+	}
+
+	*rulesSlice = slices.Delete(*rulesSlice, ruleIdx, ruleIdx+1)
+	return true
+}
+
+func removeFromDNS(r *DNSRule, c *config) bool {
+	rulesSlice := getDNSRules(r, c)
+	ruleIdx := slices.IndexFunc(*rulesSlice, func(d string) bool {
+		return strings.EqualFold(strings.TrimSpace(d), r.domain)
+	})
+
+	if ruleIdx == -1 {
+		return false
+	}
+
+	*rulesSlice = slices.Delete(*rulesSlice, ruleIdx, ruleIdx+1)
+	return true
+}
+
+func getRouteRules(r *DNSRule, c *config) *[]string {
 	mode := string(r.mode)
 	ruleSetIdx := slices.IndexFunc(c.Route.Rules, func(rr routeRule) bool {
 		return rr.Outbound == mode
@@ -140,20 +218,10 @@ func addRuleToRoute(r *DNSRule, c *config) bool {
 	}
 
 	ruleSet := &c.Route.Rules[ruleSetIdx]
-	rulesSlice := getRouteRuleSlice(r.kind, &ruleSet.rule)
-	ruleIdx := slices.IndexFunc(*rulesSlice, func(d string) bool {
-		return strings.EqualFold(strings.TrimSpace(d), r.domain)
-	})
-
-	if ruleIdx == -1 {
-		*rulesSlice = append(*rulesSlice, r.domain)
-		return true
-	}
-
-	return false
+	return getRulesByType(r.kind, &ruleSet.rule)
 }
 
-func addRuleToDNS(r *DNSRule, c *config) bool {
+func getDNSRules(r *DNSRule, c *config) *[]string {
 	ruleSetIdx := slices.IndexFunc(c.DNS.Rules, func(dr dnsRule) bool {
 		return dr.Server == dnsRoute[r.mode]
 	})
@@ -167,20 +235,10 @@ func addRuleToDNS(r *DNSRule, c *config) bool {
 	}
 
 	ruleSet := &c.DNS.Rules[ruleSetIdx]
-	rulesSlice := getRouteRuleSlice(r.kind, &ruleSet.rule)
-	ruleIdx := slices.IndexFunc(*rulesSlice, func(d string) bool {
-		return strings.EqualFold(strings.TrimSpace(d), r.domain)
-	})
-
-	if ruleIdx == -1 {
-		*rulesSlice = append(*rulesSlice, r.domain)
-		return true
-	}
-
-	return false
+	return getRulesByType(r.kind, &ruleSet.rule)
 }
 
-func getRouteRuleSlice(t DNSRuleType, r *rule) *[]string {
+func getRulesByType(t DNSRuleType, r *rule) *[]string {
 	switch t {
 	case DNSRuleSuffix:
 		return &r.DomainSuffix
@@ -193,8 +251,4 @@ func getRouteRuleSlice(t DNSRuleType, r *rule) *[]string {
 	default:
 		return nil
 	}
-}
-
-func RemoveDNSRule(r *DNSRule) *apperr.Err {
-	return nil
 }
