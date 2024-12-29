@@ -33,7 +33,7 @@ func removeIPRule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := ip.AddRule(dnsReq); err != nil {
+	if err := ip.RemoveRule(dnsReq); err != nil {
 		api.SendError(w, err)
 		return
 	}

@@ -53,41 +53,41 @@ type Rule struct {
 
 func NewRule(kind RuleType, mode config.RouteMode, domain string) (*Rule, *apperr.Err) {
 	domain = strings.ToLower(strings.TrimSpace(domain))
-	t := &Rule{kind: kind, mode: mode, domain: domain}
-	if err := t.validate(); err != nil {
+	rule := &Rule{kind: kind, mode: mode, domain: domain}
+	if err := rule.validate(); err != nil {
 		return nil, err
 	}
 
-	return t, nil
+	return rule, nil
 }
 
 var domainRegex = regexp.MustCompile(`^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$`)
 
-func (t *Rule) validate() *apperr.Err {
-	if !t.kind.isValid() {
+func (r *Rule) validate() *apperr.Err {
+	if !r.kind.isValid() {
 		return errInvalidRuleType
 	}
 
-	if err := t.mode.Validate(); err != nil {
+	if err := r.mode.Validate(); err != nil {
 		return apperr.NewValidationErr("DNSRule_InvalidRouteMode", err.Error())
 	}
 
-	if t.domain == "" {
+	if r.domain == "" {
 		return errEmptyDomain
 	}
 
-	if strings.ContainsAny(t.domain, " \t\n\r") {
-		return errDomainHasSpaces(t.domain)
+	if strings.ContainsAny(r.domain, " \t\n\r") {
+		return errDomainHasSpaces(r.domain)
 	}
 
-	if t.kind == Domain && !domainRegex.MatchString(t.domain) {
-		return errInvalidDomain(t.domain)
+	if r.kind == Domain && !domainRegex.MatchString(r.domain) {
+		return errInvalidDomain(r.domain)
 	}
 
-	if t.kind == Regex {
-		_, err := regexp.Compile(t.domain)
+	if r.kind == Regex {
+		_, err := regexp.Compile(r.domain)
 		if err != nil {
-			return errInvalidRegexp(t.domain)
+			return errInvalidRegexp(r.domain)
 		}
 	}
 
@@ -123,13 +123,13 @@ func add(r *Rule, c *config.Conf) (added bool) {
 }
 
 func addToRoute(r *Rule, c *config.Conf) bool {
-	rulesSlice := getRouteRules(r, c)
-	ruleIdx := slices.IndexFunc(*rulesSlice, func(d string) bool {
+	rules := getRouteRules(r, c)
+	ruleIdx := slices.IndexFunc(*rules, func(d string) bool {
 		return strings.EqualFold(strings.TrimSpace(d), r.domain)
 	})
 
 	if ruleIdx == -1 {
-		*rulesSlice = append(*rulesSlice, r.domain)
+		*rules = append(*rules, r.domain)
 		return true
 	}
 
@@ -137,13 +137,13 @@ func addToRoute(r *Rule, c *config.Conf) bool {
 }
 
 func addToDNS(r *Rule, c *config.Conf) bool {
-	rulesSlice := getDNSRules(r, c)
-	ruleIdx := slices.IndexFunc(*rulesSlice, func(d string) bool {
+	rules := getDNSRules(r, c)
+	ruleIdx := slices.IndexFunc(*rules, func(d string) bool {
 		return strings.EqualFold(strings.TrimSpace(d), r.domain)
 	})
 
 	if ruleIdx == -1 {
-		*rulesSlice = append(*rulesSlice, r.domain)
+		*rules = append(*rules, r.domain)
 		return true
 	}
 
@@ -173,8 +173,8 @@ func remove(r *Rule, c *config.Conf) (removed bool) {
 }
 
 func removeFromRoute(r *Rule, c *config.Conf) bool {
-	rulesSlice := getRouteRules(r, c)
-	ruleIdx := slices.IndexFunc(*rulesSlice, func(d string) bool {
+	rules := getRouteRules(r, c)
+	ruleIdx := slices.IndexFunc(*rules, func(d string) bool {
 		return strings.EqualFold(strings.TrimSpace(d), r.domain)
 	})
 
@@ -182,13 +182,13 @@ func removeFromRoute(r *Rule, c *config.Conf) bool {
 		return false
 	}
 
-	*rulesSlice = slices.Delete(*rulesSlice, ruleIdx, ruleIdx+1)
+	*rules = slices.Delete(*rules, ruleIdx, ruleIdx+1)
 	return true
 }
 
 func removeFromDNS(r *Rule, c *config.Conf) bool {
-	rulesSlice := getDNSRules(r, c)
-	ruleIdx := slices.IndexFunc(*rulesSlice, func(d string) bool {
+	rules := getDNSRules(r, c)
+	ruleIdx := slices.IndexFunc(*rules, func(d string) bool {
 		return strings.EqualFold(strings.TrimSpace(d), r.domain)
 	})
 
@@ -196,7 +196,7 @@ func removeFromDNS(r *Rule, c *config.Conf) bool {
 		return false
 	}
 
-	*rulesSlice = slices.Delete(*rulesSlice, ruleIdx, ruleIdx+1)
+	*rules = slices.Delete(*rules, ruleIdx, ruleIdx+1)
 	return true
 }
 
