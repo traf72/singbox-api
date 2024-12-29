@@ -8,6 +8,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/traf72/singbox-api/internal/api/handlers"
 	"github.com/traf72/singbox-api/internal/api/middleware"
+	"github.com/traf72/singbox-api/internal/utils"
 )
 
 func main() {
@@ -25,7 +26,7 @@ func main() {
 
 	// For Windows better to specify the full address (with IP instead of just ":8080") to avoid the Firewall issues
 	// https://stackoverflow.com/questions/55201561/golang-run-on-windows-without-deal-with-the-firewall
-	addr := "127.0.0.1:8080"
+	addr := utils.GetEnv("LISTEN_ADDR", "127.0.0.1:8080")
 	server := http.Server{
 		Addr:    addr,
 		Handler: middleware.NewHandler(router).WithRequestLogging().Build(),
