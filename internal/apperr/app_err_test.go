@@ -9,7 +9,7 @@ import (
 func TestAppErr(t *testing.T) {
 	tests := []struct {
 		name         string
-		appErr       *Err
+		appErr       Err
 		expectedMsg  string
 		expectedCode string
 		expectedKind ErrKind

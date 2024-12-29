@@ -15,15 +15,15 @@ var (
 	errInvalidRuleType = apperr.NewValidationErr("DNSRule_InvalidType", "rule type is invalid")
 )
 
-func errDomainHasSpaces(t string) *apperr.Err {
+func errDomainHasSpaces(t string) apperr.Err {
 	return apperr.NewValidationErr("DNSRule_DomainHasSpaces", fmt.Sprintf("domain '%s' has spaces", t))
 }
 
-func errInvalidDomain(d string) *apperr.Err {
+func errInvalidDomain(d string) apperr.Err {
 	return apperr.NewValidationErr("DNSRule_InvalidDomain", fmt.Sprintf("domain '%s' is invalid", d))
 }
 
-func errInvalidRegexp(r string) *apperr.Err {
+func errInvalidRegexp(r string) apperr.Err {
 	return apperr.NewValidationErr("DNSRule_InvalidRegexp", fmt.Sprintf("regexp is '%s' invalid", r))
 }
 
@@ -51,7 +51,7 @@ type Rule struct {
 	domain string
 }
 
-func NewRule(kind RuleType, mode config.RouteMode, domain string) (*Rule, *apperr.Err) {
+func NewRule(kind RuleType, mode config.RouteMode, domain string) (*Rule, apperr.Err) {
 	domain = strings.ToLower(strings.TrimSpace(domain))
 	rule := &Rule{kind: kind, mode: mode, domain: domain}
 	if err := rule.validate(); err != nil {
@@ -63,7 +63,7 @@ func NewRule(kind RuleType, mode config.RouteMode, domain string) (*Rule, *apper
 
 var domainRegex = regexp.MustCompile(`^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$`)
 
-func (r *Rule) validate() *apperr.Err {
+func (r *Rule) validate() apperr.Err {
 	if !r.kind.isValid() {
 		return errInvalidRuleType
 	}
@@ -100,7 +100,7 @@ var dnsRoute = map[config.RouteMode]string{
 	config.RouteBlock:  "dns-block",
 }
 
-func AddRule(r *Rule) *apperr.Err {
+func AddRule(r *Rule) apperr.Err {
 	c, err := config.Load()
 	if err != nil {
 		return err
@@ -150,7 +150,7 @@ func addToDNS(r *Rule, c *config.Conf) bool {
 	return false
 }
 
-func RemoveRule(r *Rule) *apperr.Err {
+func RemoveRule(r *Rule) apperr.Err {
 	c, err := config.Load()
 	if err != nil {
 		return err

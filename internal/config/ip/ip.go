@@ -14,7 +14,7 @@ var (
 	errEmptyIP = apperr.NewValidationErr("IPRule_EmptyIP", "IP is empty")
 )
 
-func errInvalidIP(ip string) *apperr.Err {
+func errInvalidIP(ip string) apperr.Err {
 	return apperr.NewValidationErr("IPRule_InvalidIP", fmt.Sprintf("IP '%s' is invalid", ip))
 }
 
@@ -23,7 +23,7 @@ type Rule struct {
 	ip   string
 }
 
-func NewRule(m config.RouteMode, ip string) (*Rule, *apperr.Err) {
+func NewRule(m config.RouteMode, ip string) (*Rule, apperr.Err) {
 	ip = strings.TrimSpace(ip)
 	rule := &Rule{mode: m, ip: ip}
 	if err := rule.validate(); err != nil {
@@ -35,7 +35,7 @@ func NewRule(m config.RouteMode, ip string) (*Rule, *apperr.Err) {
 
 var ipRegex = regexp.MustCompile(`^([01]?\d\d?|2[0-4]\d|25[0-5])(?:\.(?:[01]?\d\d?|2[0-4]\d|25[0-5])){3}(?:/[0-2]\d|/3[0-2])?$`)
 
-func (r *Rule) validate() *apperr.Err {
+func (r *Rule) validate() apperr.Err {
 	if err := r.mode.Validate(); err != nil {
 		return apperr.NewValidationErr("IPRule_InvalidRouteMode", err.Error())
 	}
@@ -51,7 +51,7 @@ func (r *Rule) validate() *apperr.Err {
 	return nil
 }
 
-func AddRule(r *Rule) *apperr.Err {
+func AddRule(r *Rule) apperr.Err {
 	c, err := config.Load()
 	if err != nil {
 		return err
@@ -81,7 +81,7 @@ func add(r *Rule, c *config.Conf) (added bool) {
 	return false
 }
 
-func RemoveRule(r *Rule) *apperr.Err {
+func RemoveRule(r *Rule) apperr.Err {
 	c, err := config.Load()
 	if err != nil {
 		return err

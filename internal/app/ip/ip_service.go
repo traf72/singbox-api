@@ -6,6 +6,7 @@ import (
 	"github.com/traf72/singbox-api/internal/apperr"
 	"github.com/traf72/singbox-api/internal/config"
 	"github.com/traf72/singbox-api/internal/config/ip"
+	"github.com/traf72/singbox-api/internal/singbox"
 )
 
 var (
@@ -17,7 +18,7 @@ type Rule struct {
 	IP        string `json:"ip"`
 }
 
-func (r *Rule) toConfigRule() (*ip.Rule, *apperr.Err) {
+func (r *Rule) toConfigRule() (*ip.Rule, apperr.Err) {
 	if strings.TrimSpace(r.IP) == "" {
 		return nil, errEmptyIP
 	}
@@ -35,7 +36,7 @@ func (r *Rule) toConfigRule() (*ip.Rule, *apperr.Err) {
 	return rule, nil
 }
 
-func AddRule(r *Rule) *apperr.Err {
+func AddRule(r *Rule) apperr.Err {
 	rule, err := r.toConfigRule()
 	if err != nil {
 		return err
@@ -45,16 +46,24 @@ func AddRule(r *Rule) *apperr.Err {
 		return err
 	}
 
+	if err = singbox.Restart(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func RemoveRule(r *Rule) *apperr.Err {
+func RemoveRule(r *Rule) apperr.Err {
 	rule, err := r.toConfigRule()
 	if err != nil {
 		return err
 	}
 
 	if err = ip.RemoveRule(rule); err != nil {
+		return err
+	}
+
+	if err = singbox.Restart(); err != nil {
 		return err
 	}
 

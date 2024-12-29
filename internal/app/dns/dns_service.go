@@ -7,6 +7,7 @@ import (
 	"github.com/traf72/singbox-api/internal/apperr"
 	"github.com/traf72/singbox-api/internal/config"
 	"github.com/traf72/singbox-api/internal/config/dns"
+	"github.com/traf72/singbox-api/internal/singbox"
 )
 
 var (
@@ -14,11 +15,11 @@ var (
 	errEmptyType = apperr.NewValidationErr("DNSRule_EmptyType", "DNS rule type is empty")
 )
 
-func errUnknownType(t string) *apperr.Err {
+func errUnknownType(t string) apperr.Err {
 	return apperr.NewValidationErr("DNSRule_UnknownType", fmt.Sprintf("DNS rule type '%s' is unknown", t))
 }
 
-func errTooManyParts(t string) *apperr.Err {
+func errTooManyParts(t string) apperr.Err {
 	return apperr.NewValidationErr("DNSRule_TooManyParts", fmt.Sprintf("DNS rule '%s' has too many parts", t))
 }
 
@@ -27,7 +28,7 @@ type Rule struct {
 	Domain    string `json:"domain"`
 }
 
-func (r *Rule) toConfigRule() (*dns.Rule, *apperr.Err) {
+func (r *Rule) toConfigRule() (*dns.Rule, apperr.Err) {
 	if strings.TrimSpace(r.Domain) == "" {
 		return nil, errEmptyRule
 	}
@@ -44,7 +45,7 @@ func (r *Rule) toConfigRule() (*dns.Rule, *apperr.Err) {
 
 	var ruleType dns.RuleType
 	var domain string
-	var appErr *apperr.Err
+	var appErr apperr.Err
 
 	if len(parts) == 1 {
 		ruleType = dns.Domain
@@ -66,7 +67,7 @@ func (r *Rule) toConfigRule() (*dns.Rule, *apperr.Err) {
 	return rule, nil
 }
 
-func parseType(input string) (dns.RuleType, *apperr.Err) {
+func parseType(input string) (dns.RuleType, apperr.Err) {
 	trimmed := strings.TrimSpace(input)
 	if trimmed == "" {
 		return -1, errEmptyType
@@ -86,7 +87,7 @@ func parseType(input string) (dns.RuleType, *apperr.Err) {
 	}
 }
 
-func AddRule(r *Rule) *apperr.Err {
+func AddRule(r *Rule) apperr.Err {
 	rule, err := r.toConfigRule()
 	if err != nil {
 		return err
@@ -96,16 +97,24 @@ func AddRule(r *Rule) *apperr.Err {
 		return err
 	}
 
+	if err = singbox.Restart(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func RemoveRule(r *Rule) *apperr.Err {
+func RemoveRule(r *Rule) apperr.Err {
 	rule, err := r.toConfigRule()
 	if err != nil {
 		return err
 	}
 
 	if err = dns.RemoveRule(rule); err != nil {
+		return err
+	}
+
+	if err = singbox.Restart(); err != nil {
 		return err
 	}
 

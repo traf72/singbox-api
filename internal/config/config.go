@@ -117,14 +117,14 @@ type Config struct {
 
 var errEmptyPath = apperr.NewFatalErr("Config_EmptyPath", "path to the configuration file is not specified")
 
-func errStatReading(err string) *apperr.Err {
+func errStatReading(err string) apperr.Err {
 	return apperr.NewFatalErr("Config_StatReadError", err)
 }
 
-func Load() (*Config, *apperr.Err) {
-	path := getPath()
-	if path == "" {
-		return nil, errEmptyPath
+func Load() (*Config, apperr.Err) {
+	path, appErr := GetPath()
+	if appErr != nil {
+		return nil, appErr
 	}
 
 	stat, err := os.Stat(path)
@@ -149,10 +149,10 @@ func Load() (*Config, *apperr.Err) {
 
 var saveMutex sync.Mutex
 
-func Save(c *Config) *apperr.Err {
-	path := getPath()
-	if path == "" {
-		return errEmptyPath
+func Save(c *Config) apperr.Err {
+	path, appErr := GetPath()
+	if appErr != nil {
+		return appErr
 	}
 
 	stat, err := os.Stat(path)
@@ -199,6 +199,11 @@ func Save(c *Config) *apperr.Err {
 	return nil
 }
 
-func getPath() string {
-	return os.Getenv("CONFIG_PATH")
+func GetPath() (string, apperr.Err) {
+	path := os.Getenv("CONFIG_PATH")
+	if path == "" {
+		return "", errEmptyPath
+	}
+
+	return path, nil
 }

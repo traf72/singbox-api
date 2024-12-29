@@ -19,12 +19,12 @@ func SendConflict(w http.ResponseWriter, err string) {
 	http.Error(w, err, http.StatusConflict)
 }
 
-func SendInternalServerError(w http.ResponseWriter, err *apperr.Err) {
+func SendInternalServerError(w http.ResponseWriter, err apperr.Err) {
 	log.Printf("%d %s: %s", http.StatusInternalServerError, err.Code(), err.Msg())
 	http.Error(w, "", http.StatusInternalServerError)
 }
 
-func SendError(w http.ResponseWriter, e *apperr.Err) {
+func SendError(w http.ResponseWriter, e apperr.Err) {
 	switch e.Kind() {
 	case apperr.Validation:
 		SendBadRequest(w, e.Msg())

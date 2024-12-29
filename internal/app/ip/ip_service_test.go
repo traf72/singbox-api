@@ -14,7 +14,7 @@ func TestToConfigRule(t *testing.T) {
 		name          string
 		rule          *Rule
 		expected      *ip.Rule
-		expectedError *apperr.Err
+		expectedError apperr.Err
 	}{
 		{
 			name: "IP_Proxy_TrimSpace_LowerCase",

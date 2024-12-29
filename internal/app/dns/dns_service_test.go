@@ -14,7 +14,7 @@ func TestParseType(t *testing.T) {
 		name        string
 		input       string
 		expected    dns.RuleType
-		expectedErr *apperr.Err
+		expectedErr apperr.Err
 	}{
 		{"Full", "full", dns.Domain, nil},
 		{"Full_TrimSpaces_LowerCase", "\tFull\r\n", dns.Domain, nil},
@@ -43,7 +43,7 @@ func TestToDNSRule(t *testing.T) {
 		name          string
 		rule          *Rule
 		expected      *dns.Rule
-		expectedError *apperr.Err
+		expectedError apperr.Err
 	}{
 		{
 			name: "Domain_Proxy_TrimSpace_LowerCase",

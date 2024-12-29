@@ -32,7 +32,7 @@ func TestRule_Validate(t *testing.T) {
 	tests := []struct {
 		name     string
 		rule     Rule
-		expected *apperr.Err
+		expected apperr.Err
 	}{
 		{"Rule_Suffix_Proxy", Rule{kind: Suffix, mode: config.RouteProxy, domain: ".com"}, nil},
 		{"Rule_Keyword_Block", Rule{kind: Keyword, mode: config.RouteBlock, domain: "google"}, nil},
@@ -62,7 +62,7 @@ func TestNewRule(t *testing.T) {
 		mode          config.RouteMode
 		domain        string
 		expected      *Rule
-		expectedError *apperr.Err
+		expectedError apperr.Err
 	}{
 		{"Suffix_Direct", Suffix, config.RouteDirect, " .Com ", &Rule{Suffix, config.RouteDirect, ".com"}, nil},
 		{"Suffix_Block", Suffix, config.RouteBlock, " .Com ", &Rule{Suffix, config.RouteBlock, ".com"}, nil},
