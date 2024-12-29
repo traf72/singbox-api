@@ -228,7 +228,7 @@ func getDNSRules(r *Rule, c *config.Conf) *[]string {
 			Server: dnsRoute[r.mode],
 			Rule:   config.Rule{},
 		})
-		ruleSetIdx = len(c.Route.Rules) - 1
+		ruleSetIdx = len(c.DNS.Rules) - 1
 	}
 
 	ruleSet := &c.DNS.Rules[ruleSetIdx]
