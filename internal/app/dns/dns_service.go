@@ -7,7 +7,7 @@ import (
 	"github.com/traf72/singbox-api/internal/apperr"
 	"github.com/traf72/singbox-api/internal/config"
 	"github.com/traf72/singbox-api/internal/config/dns"
-	"github.com/traf72/singbox-api/internal/singbox"
+	"github.com/traf72/singbox-api/internal/config/singbox"
 )
 
 var (
