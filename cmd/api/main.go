@@ -19,6 +19,10 @@ func main() {
 
 	router := http.NewServeMux()
 
+	router.Handle("GET /health", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("The service is alive"))
+	}))
 	router.Handle("PUT /dns-rules", handlers.AddDNSRuleHandler())
 	router.Handle("DELETE /dns-rules", handlers.RemoveDNSRuleHandler())
 	router.Handle("PUT /ip-rules", handlers.AddIPRuleHandler())
