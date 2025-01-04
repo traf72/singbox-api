@@ -31,7 +31,7 @@ fi
 if [ -f "$SERVICE_FILE" ]; then
     log "Removing systemd service file..."
     sudo rm "$SERVICE_FILE"
-	sudo systemctl reset-failed "${SERVICE_NAME}.service"
+    sudo systemctl reset-failed "${SERVICE_NAME}.service" || log "Skipping reset-failed: Service not loaded."
     sudo systemctl daemon-reload
     log "Service file removed and systemd reloaded."
 else
