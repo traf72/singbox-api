@@ -1,16 +1,13 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/traf72/singbox-api/internal/api"
 	"github.com/traf72/singbox-api/internal/api/middleware"
+	"github.com/traf72/singbox-api/internal/api/query"
 	"github.com/traf72/singbox-api/internal/app/config"
 )
-
-const downloadQueryParam = "download"
 
 func getConfig(w http.ResponseWriter, r *http.Request) {
 	c, appErr := config.GetConfig()
@@ -19,16 +16,10 @@ func getConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	download := false
-
-	downloadVal := r.URL.Query().Get(downloadQueryParam)
-	if downloadVal != "" {
-		var err error
-		download, err = strconv.ParseBool(downloadVal)
-		if err != nil {
-			api.SendBadRequest(w, fmt.Sprintf("invalid value '%s' for query parameter '%s': expected a boolean (true, false)", downloadVal, downloadQueryParam))
-			return
-		}
+	download, err := query.GetBool(r.URL.Query(), "download", false)
+	if err != nil {
+		api.SendBadRequest(w, err.Error())
+		return
 	}
 
 	if download {
