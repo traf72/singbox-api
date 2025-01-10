@@ -23,11 +23,18 @@ func main() {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("The service is alive"))
 	}))
+
 	router.Handle("PUT /dns-rules", handlers.AddDNSRuleHandler())
 	router.Handle("DELETE /dns-rules", handlers.RemoveDNSRuleHandler())
+
 	router.Handle("PUT /ip-rules", handlers.AddIPRuleHandler())
 	router.Handle("DELETE /ip-rules", handlers.RemoveIPRuleHandler())
+
 	router.Handle("GET /config", handlers.GetConfigHandler())
+
+	router.Handle("POST /singbox/start", handlers.SingboxStartHandler())
+	router.Handle("POST /singbox/stop", handlers.SingboxStopHandler())
+	router.Handle("POST /singbox/restart", handlers.SingboxRestartHandler())
 
 	// For Windows better to specify the full address (with IP instead of just ":8080") to avoid the Firewall issues
 	// https://stackoverflow.com/questions/55201561/golang-run-on-windows-without-deal-with-the-firewall
