@@ -12,8 +12,8 @@ func NewHandler(h http.Handler) *HttpHandler {
 	return &HttpHandler{handler: h}
 }
 
-func NewHandlerFunc(hf http.HandlerFunc) *HttpHandler {
-	return &HttpHandler{handler: http.HandlerFunc(hf)}
+func NewHandlerFunc(h http.HandlerFunc) *HttpHandler {
+	return &HttpHandler{handler: http.HandlerFunc(h)}
 }
 
 func (h *HttpHandler) WithJsonRequest() *HttpHandler {

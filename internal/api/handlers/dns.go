@@ -12,7 +12,7 @@ import (
 func addDNSRule(w http.ResponseWriter, r *http.Request) {
 	dnsReq := new(dns.Rule)
 
-	if err := utils.ParseJson(r.Body, dnsReq); err != nil {
+	if err := utils.FromJSON(r.Body, dnsReq); err != nil {
 		api.SendBadRequest(w, err.Error())
 		return
 	}
@@ -28,7 +28,7 @@ func addDNSRule(w http.ResponseWriter, r *http.Request) {
 func removeDNSRule(w http.ResponseWriter, r *http.Request) {
 	dnsReq := new(dns.Rule)
 
-	if err := utils.ParseJson(r.Body, dnsReq); err != nil {
+	if err := utils.FromJSON(r.Body, dnsReq); err != nil {
 		api.SendBadRequest(w, err.Error())
 		return
 	}

@@ -1,13 +1,13 @@
 package config
 
 import (
-	"encoding/json"
 	"log"
 	"os"
 	"sync"
 	"time"
 
 	"github.com/traf72/singbox-api/internal/apperr"
+	"github.com/traf72/singbox-api/internal/utils"
 )
 
 type Conf struct {
@@ -115,6 +115,8 @@ type Config struct {
 	lastModified time.Time
 }
 
+var serializeOptions = &utils.JSONOptions{Indent: "    ", Prefix: "", EscapeHTML: false}
+
 var errEmptyPath = apperr.NewFatalErr("Config_EmptyPath", "path to the configuration file is not specified")
 
 func errStatReading(err string) apperr.Err {
@@ -138,9 +140,8 @@ func Load() (*Config, apperr.Err) {
 	}
 	defer file.Close()
 
-	d := json.NewDecoder(file)
 	c := new(Conf)
-	if err := d.Decode(c); err != nil {
+	if err := utils.FromJSON(file, c); err != nil {
 		return nil, apperr.NewFatalErr("Config_JsonDecodeError", err.Error())
 	}
 
@@ -184,10 +185,7 @@ func Save(c *Config) apperr.Err {
 	defer removeTmpFile()
 	defer tmpFile.Close()
 
-	encoder := json.NewEncoder(tmpFile)
-	encoder.SetIndent("", "    ")
-	encoder.SetEscapeHTML(false)
-	if err := encoder.Encode(c.Conf); err != nil {
+	if err := utils.ToJSON(tmpFile, c.Conf, serializeOptions); err != nil {
 		return apperr.NewFatalErr("Config_JsonEncodeError", err.Error())
 	}
 

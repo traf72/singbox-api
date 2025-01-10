@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"bytes"
 	"strings"
 	"testing"
 
@@ -13,7 +14,7 @@ type testStruct struct {
 	Email string `json:"email"`
 }
 
-func TestParseJson(t *testing.T) {
+func TestFromJSON(t *testing.T) {
 	tests := []struct {
 		name          string
 		input         string
@@ -66,20 +67,129 @@ func TestParseJson(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			switch target := tt.target.(type) {
 			case *testStruct:
-				err := ParseJson(strings.NewReader(tt.input), target)
+				err := FromJSON(strings.NewReader(tt.input), target)
 				assertResult(t, err, tt.expectedError, tt.expected, *target)
 			case *string:
-				err := ParseJson(strings.NewReader(tt.input), target)
+				err := FromJSON(strings.NewReader(tt.input), target)
 				assertResult(t, err, tt.expectedError, tt.expected, *target)
 			case *[]testStruct:
-				err := ParseJson(strings.NewReader(tt.input), target)
+				err := FromJSON(strings.NewReader(tt.input), target)
 				assertResult(t, err, tt.expectedError, tt.expected, *target)
 			case *[]int:
-				err := ParseJson(strings.NewReader(tt.input), target)
+				err := FromJSON(strings.NewReader(tt.input), target)
 				assertResult(t, err, tt.expectedError, tt.expected, *target)
 			default:
 				t.Fatalf("unsupported target type: %T", tt.target)
 			}
+		})
+	}
+}
+
+func TestToJSON(t *testing.T) {
+	tests := []struct {
+		name          string
+		input         any
+		options       *JSONOptions
+		expected      string
+		expectedError string
+	}{
+		{
+			name:  "Valid Struct with Indent and Prefix",
+			input: testStruct{Name: "John", Age: 30, Email: "john@example.com"},
+			options: &JSONOptions{
+				Indent: "  ",
+				Prefix: ">> ",
+			},
+			expected: `{
+>>   "name": "John",
+>>   "age": 30,
+>>   "email": "john@example.com"
+>> }
+`,
+		},
+		{
+			name:    "Valid Struct with default options",
+			input:   testStruct{Name: "<div>John</div>", Age: 30, Email: "john@example.com"},
+			options: nil,
+			expected: `{"name":"\u003cdiv\u003eJohn\u003c/div\u003e","age":30,"email":"john@example.com"}
+`,
+		},
+		{
+			name:  "Valid Array of Structs with Indent Only",
+			input: []testStruct{{Name: "Alice", Age: 25, Email: "alice@example.com"}, {Name: "Bob", Age: 40, Email: "bob@example.com"}},
+			options: &JSONOptions{
+				Indent: "\t",
+			},
+			expected: `[
+	{
+		"name": "Alice",
+		"age": 25,
+		"email": "alice@example.com"
+	},
+	{
+		"name": "Bob",
+		"age": 40,
+		"email": "bob@example.com"
+	}
+]
+`,
+		},
+		{
+			name:  "Valid String with EscapeHTML Disabled",
+			input: "<div>Hello</div>",
+			options: &JSONOptions{
+				EscapeHTML: false,
+				Indent:     "",
+			},
+			expected: "\"<div>Hello</div>\"\n",
+		},
+		{
+			name:  "Valid String with EscapeHTML Enabled",
+			input: "<div>Hello</div>",
+			options: &JSONOptions{
+				EscapeHTML: true,
+				Indent:     "",
+			},
+			expected: `"\u003cdiv\u003eHello\u003c/div\u003e"
+`,
+		},
+		{
+			name:     "Valid Array of Integers",
+			input:    []int{1, 2, 3, 4},
+			options:  &JSONOptions{},
+			expected: "[1,2,3,4]\n",
+		},
+		{
+			name:     "Nil Input with Default Options",
+			input:    nil,
+			options:  &JSONOptions{},
+			expected: "null\n",
+		},
+		{
+			name:  "Invalid Input (Channel)",
+			input: make(chan int),
+			options: &JSONOptions{
+				Indent: "",
+			},
+			expected:      "",
+			expectedError: "failed to serialize to json",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+
+			err := ToJSON(&buf, tt.input, tt.options)
+
+			if tt.expectedError != "" {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), tt.expectedError)
+				return
+			}
+
+			assert.NoError(t, err)
+			assert.Equal(t, tt.expected, buf.String())
 		})
 	}
 }

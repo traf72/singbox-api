@@ -5,7 +5,18 @@ import (
 	"net/http"
 
 	"github.com/traf72/singbox-api/internal/apperr"
+	"github.com/traf72/singbox-api/internal/utils"
 )
+
+var jsonSerializeOptions = &utils.JSONOptions{Indent: "    ", Prefix: "", EscapeHTML: false}
+
+func SendJson(w http.ResponseWriter, body any) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if err := utils.ToJSON(w, body, jsonSerializeOptions); err != nil {
+		SendInternalServerError(w, apperr.NewFatalErr("JsonEncodingError", err.Error()))
+	}
+}
 
 func SendBadRequest(w http.ResponseWriter, err string) {
 	http.Error(w, err, http.StatusBadRequest)

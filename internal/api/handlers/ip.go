@@ -12,7 +12,7 @@ import (
 func addIPRule(w http.ResponseWriter, r *http.Request) {
 	dnsReq := new(ip.Rule)
 
-	if err := utils.ParseJson(r.Body, dnsReq); err != nil {
+	if err := utils.FromJSON(r.Body, dnsReq); err != nil {
 		api.SendBadRequest(w, err.Error())
 		return
 	}
@@ -28,7 +28,7 @@ func addIPRule(w http.ResponseWriter, r *http.Request) {
 func removeIPRule(w http.ResponseWriter, r *http.Request) {
 	dnsReq := new(ip.Rule)
 
-	if err := utils.ParseJson(r.Body, dnsReq); err != nil {
+	if err := utils.FromJSON(r.Body, dnsReq); err != nil {
 		api.SendBadRequest(w, err.Error())
 		return
 	}
