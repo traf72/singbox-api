@@ -115,7 +115,7 @@ type Config struct {
 	lastModified time.Time
 }
 
-var serializeOptions = &utils.JSONOptions{Indent: "    ", Prefix: "", EscapeHTML: false}
+var serializeOptions = &utils.JSONOptions{Indent: "    ", EscapeHTML: false}
 
 var errEmptyPath = apperr.NewFatalErr("Config_EmptyPath", "path to the configuration file is not specified")
 

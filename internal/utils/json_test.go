@@ -94,17 +94,16 @@ func TestToJSON(t *testing.T) {
 		expectedError string
 	}{
 		{
-			name:  "Valid Struct with Indent and Prefix",
+			name:  "Valid Struct with Indent",
 			input: testStruct{Name: "John", Age: 30, Email: "john@example.com"},
 			options: &JSONOptions{
 				Indent: "  ",
-				Prefix: ">> ",
 			},
 			expected: `{
->>   "name": "John",
->>   "age": 30,
->>   "email": "john@example.com"
->> }
+  "name": "John",
+  "age": 30,
+  "email": "john@example.com"
+}
 `,
 		},
 		{
@@ -115,7 +114,7 @@ func TestToJSON(t *testing.T) {
 `,
 		},
 		{
-			name:  "Valid Array of Structs with Indent Only",
+			name:  "Valid Array of Structs with Indent",
 			input: []testStruct{{Name: "Alice", Age: 25, Email: "alice@example.com"}, {Name: "Bob", Age: 40, Email: "bob@example.com"}},
 			options: &JSONOptions{
 				Indent: "\t",

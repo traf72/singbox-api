@@ -8,7 +8,6 @@ import (
 
 type JSONOptions struct {
 	Indent     string
-	Prefix     string
 	EscapeHTML bool
 }
 
@@ -24,7 +23,7 @@ func FromJSON[T any](r io.Reader, target *T) error {
 func ToJSON(w io.Writer, source any, options *JSONOptions) error {
 	e := json.NewEncoder(w)
 	if options != nil {
-		e.SetIndent(options.Prefix, options.Indent)
+		e.SetIndent("", options.Indent)
 		e.SetEscapeHTML(options.EscapeHTML)
 	}
 

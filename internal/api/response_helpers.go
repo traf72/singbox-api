@@ -8,7 +8,7 @@ import (
 	"github.com/traf72/singbox-api/internal/utils"
 )
 
-var jsonSerializeOptions = &utils.JSONOptions{Indent: "    ", Prefix: "", EscapeHTML: false}
+var jsonSerializeOptions = &utils.JSONOptions{Indent: "    ", EscapeHTML: false}
 
 func SendJson(w http.ResponseWriter, body any) {
 	w.Header().Set("Content-Type", "application/json")
