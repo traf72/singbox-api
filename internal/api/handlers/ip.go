@@ -5,19 +5,19 @@ import (
 
 	"github.com/traf72/singbox-api/internal/api"
 	"github.com/traf72/singbox-api/internal/api/middleware"
-	"github.com/traf72/singbox-api/internal/app/ip"
+	"github.com/traf72/singbox-api/internal/app"
 	"github.com/traf72/singbox-api/internal/utils"
 )
 
 func addIPRule(w http.ResponseWriter, r *http.Request) {
-	dnsReq := new(ip.Rule)
+	ipReq := new(app.IPRule)
 
-	if err := utils.FromJSON(r.Body, dnsReq); err != nil {
+	if err := utils.FromJSON(r.Body, ipReq); err != nil {
 		api.SendBadRequest(w, err.Error())
 		return
 	}
 
-	if err := ip.AddRule(dnsReq); err != nil {
+	if err := app.AddIPRule(ipReq); err != nil {
 		api.SendError(w, err)
 		return
 	}
@@ -26,14 +26,14 @@ func addIPRule(w http.ResponseWriter, r *http.Request) {
 }
 
 func removeIPRule(w http.ResponseWriter, r *http.Request) {
-	dnsReq := new(ip.Rule)
+	ipReq := new(app.IPRule)
 
-	if err := utils.FromJSON(r.Body, dnsReq); err != nil {
+	if err := utils.FromJSON(r.Body, ipReq); err != nil {
 		api.SendBadRequest(w, err.Error())
 		return
 	}
 
-	if err := ip.RemoveRule(dnsReq); err != nil {
+	if err := app.RemoveIPRule(ipReq); err != nil {
 		api.SendError(w, err)
 		return
 	}

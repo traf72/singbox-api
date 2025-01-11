@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestValidate(t *testing.T) {
+func TestRouteModeValidate(t *testing.T) {
 	tests := []struct {
 		name     string
 		mode     RouteMode

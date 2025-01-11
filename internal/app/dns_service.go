@@ -1,36 +1,36 @@
-package dns
+package app
 
 import (
 	"fmt"
 	"strings"
 
 	"github.com/traf72/singbox-api/internal/apperr"
-	"github.com/traf72/singbox-api/internal/config"
-	"github.com/traf72/singbox-api/internal/config/dns"
-	"github.com/traf72/singbox-api/internal/config/singbox"
+	"github.com/traf72/singbox-api/internal/singbox"
+	"github.com/traf72/singbox-api/internal/singbox/config"
+	"github.com/traf72/singbox-api/internal/singbox/config/dns"
 )
 
 var (
-	errEmptyRule = apperr.NewValidationErr("DNSRule_Empty", "DNS rule is empty")
-	errEmptyType = apperr.NewValidationErr("DNSRule_EmptyType", "DNS rule type is empty")
+	errDNSEmptyRule = apperr.NewValidationErr("DNSRule_Empty", "DNS rule is empty")
+	errDNSEmptyType = apperr.NewValidationErr("DNSRule_EmptyType", "DNS rule type is empty")
 )
 
-func errUnknownType(t string) apperr.Err {
+func errDNSUnknownType(t string) apperr.Err {
 	return apperr.NewValidationErr("DNSRule_UnknownType", fmt.Sprintf("DNS rule type '%s' is unknown", t))
 }
 
-func errTooManyParts(t string) apperr.Err {
+func errDNSTooManyParts(t string) apperr.Err {
 	return apperr.NewValidationErr("DNSRule_TooManyParts", fmt.Sprintf("DNS rule '%s' has too many parts", t))
 }
 
-type Rule struct {
+type DNSRule struct {
 	RouteMode string `json:"routeMode"`
 	Domain    string `json:"domain"`
 }
 
-func (r *Rule) toConfigRule() (*dns.Rule, apperr.Err) {
+func (r *DNSRule) toConfigRule() (*dns.Rule, apperr.Err) {
 	if strings.TrimSpace(r.Domain) == "" {
-		return nil, errEmptyRule
+		return nil, errDNSEmptyRule
 	}
 
 	routeMode, err := config.RouteModeFromString(r.RouteMode)
@@ -40,7 +40,7 @@ func (r *Rule) toConfigRule() (*dns.Rule, apperr.Err) {
 
 	parts := strings.Split(r.Domain, ":")
 	if len(parts) > 2 {
-		return nil, errTooManyParts(r.Domain)
+		return nil, errDNSTooManyParts(r.Domain)
 	}
 
 	var ruleType dns.RuleType
@@ -51,7 +51,7 @@ func (r *Rule) toConfigRule() (*dns.Rule, apperr.Err) {
 		ruleType = dns.Domain
 		domain = parts[0]
 	} else {
-		ruleType, appErr = parseType(parts[0])
+		ruleType, appErr = parseDNSRuleType(parts[0])
 		if appErr != nil {
 			return nil, appErr
 		}
@@ -67,10 +67,10 @@ func (r *Rule) toConfigRule() (*dns.Rule, apperr.Err) {
 	return rule, nil
 }
 
-func parseType(input string) (dns.RuleType, apperr.Err) {
+func parseDNSRuleType(input string) (dns.RuleType, apperr.Err) {
 	trimmed := strings.TrimSpace(input)
 	if trimmed == "" {
-		return -1, errEmptyType
+		return -1, errDNSEmptyType
 	}
 
 	switch strings.ToLower(trimmed) {
@@ -83,11 +83,11 @@ func parseType(input string) (dns.RuleType, apperr.Err) {
 	case "regexp":
 		return dns.Regex, nil
 	default:
-		return -1, errUnknownType(input)
+		return -1, errDNSUnknownType(input)
 	}
 }
 
-func AddRule(r *Rule) apperr.Err {
+func AddDNSRule(r *DNSRule) apperr.Err {
 	rule, err := r.toConfigRule()
 	if err != nil {
 		return err
@@ -104,7 +104,7 @@ func AddRule(r *Rule) apperr.Err {
 	return nil
 }
 
-func RemoveRule(r *Rule) apperr.Err {
+func RemoveDNSRule(r *DNSRule) apperr.Err {
 	rule, err := r.toConfigRule()
 	if err != nil {
 		return err

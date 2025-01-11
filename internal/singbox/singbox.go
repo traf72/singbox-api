@@ -11,18 +11,18 @@ import (
 )
 
 func Start() apperr.Err {
-	return execute("start")
+	return execCommand("start")
 }
 
 func Stop() apperr.Err {
-	return execute("stop")
+	return execCommand("stop")
 }
 
 func Restart() apperr.Err {
-	return execute("restart")
+	return execCommand("restart")
 }
 
-func execute(action string) apperr.Err {
+func execCommand(action string) apperr.Err {
 	disabled, err := utils.GetEnvBool("DISABLE_SINGBOX_INTERACTION", false)
 	if err != nil {
 		apperr.NewFatalErr("Singbox_EnvReadingFailed", err.Error())

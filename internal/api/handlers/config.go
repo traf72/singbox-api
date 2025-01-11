@@ -7,11 +7,11 @@ import (
 	"github.com/traf72/singbox-api/internal/api/header"
 	"github.com/traf72/singbox-api/internal/api/middleware"
 	"github.com/traf72/singbox-api/internal/api/query"
-	"github.com/traf72/singbox-api/internal/app/config"
+	"github.com/traf72/singbox-api/internal/app"
 )
 
 func getConfig(w http.ResponseWriter, r *http.Request) {
-	c, appErr := config.GetConfig()
+	c, appErr := app.GetConfig()
 	if appErr != nil {
 		api.SendError(w, appErr)
 		return

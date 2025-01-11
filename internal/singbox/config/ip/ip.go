@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/traf72/singbox-api/internal/apperr"
-	"github.com/traf72/singbox-api/internal/config"
+	"github.com/traf72/singbox-api/internal/singbox/config"
 )
 
 var (

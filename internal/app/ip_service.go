@@ -1,26 +1,26 @@
-package ip
+package app
 
 import (
 	"strings"
 
 	"github.com/traf72/singbox-api/internal/apperr"
-	"github.com/traf72/singbox-api/internal/config"
-	"github.com/traf72/singbox-api/internal/config/ip"
-	"github.com/traf72/singbox-api/internal/config/singbox"
+	"github.com/traf72/singbox-api/internal/singbox"
+	"github.com/traf72/singbox-api/internal/singbox/config"
+	"github.com/traf72/singbox-api/internal/singbox/config/ip"
 )
 
 var (
-	errEmptyIP = apperr.NewValidationErr("IPRule_Empty", "IP is empty")
+	errIPEmptyRule = apperr.NewValidationErr("IPRule_Empty", "IP is empty")
 )
 
-type Rule struct {
+type IPRule struct {
 	RouteMode string `json:"routeMode"`
 	IP        string `json:"ip"`
 }
 
-func (r *Rule) toConfigRule() (*ip.Rule, apperr.Err) {
+func (r *IPRule) toConfigRule() (*ip.Rule, apperr.Err) {
 	if strings.TrimSpace(r.IP) == "" {
-		return nil, errEmptyIP
+		return nil, errIPEmptyRule
 	}
 
 	routeMode, err := config.RouteModeFromString(r.RouteMode)
@@ -36,7 +36,7 @@ func (r *Rule) toConfigRule() (*ip.Rule, apperr.Err) {
 	return rule, nil
 }
 
-func AddRule(r *Rule) apperr.Err {
+func AddIPRule(r *IPRule) apperr.Err {
 	rule, err := r.toConfigRule()
 	if err != nil {
 		return err
@@ -53,7 +53,7 @@ func AddRule(r *Rule) apperr.Err {
 	return nil
 }
 
-func RemoveRule(r *Rule) apperr.Err {
+func RemoveIPRule(r *IPRule) apperr.Err {
 	rule, err := r.toConfigRule()
 	if err != nil {
 		return err

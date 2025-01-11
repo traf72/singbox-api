@@ -1,24 +1,24 @@
-package ip
+package app
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/traf72/singbox-api/internal/apperr"
-	"github.com/traf72/singbox-api/internal/config"
-	"github.com/traf72/singbox-api/internal/config/ip"
+	"github.com/traf72/singbox-api/internal/singbox/config"
+	"github.com/traf72/singbox-api/internal/singbox/config/ip"
 )
 
-func TestToConfigRule(t *testing.T) {
+func Test_IPRuleToConfigRule(t *testing.T) {
 	tests := []struct {
 		name          string
-		rule          *Rule
+		rule          *IPRule
 		expected      *ip.Rule
 		expectedError apperr.Err
 	}{
 		{
 			name: "IP_Proxy_TrimSpace_LowerCase",
-			rule: &Rule{IP: "\t 142.250.0.0\r\n", RouteMode: "\t PROXY\n"},
+			rule: &IPRule{IP: "\t 142.250.0.0\r\n", RouteMode: "\t PROXY\n"},
 			expected: func() *ip.Rule {
 				t, _ := ip.NewRule(config.RouteProxy, "142.250.0.0")
 				return t
@@ -27,7 +27,7 @@ func TestToConfigRule(t *testing.T) {
 		},
 		{
 			name: "IP_Direct",
-			rule: &Rule{IP: "142.250.0.0", RouteMode: "direct"},
+			rule: &IPRule{IP: "142.250.0.0", RouteMode: "direct"},
 			expected: func() *ip.Rule {
 				t, _ := ip.NewRule(config.RouteDirect, "142.250.0.0")
 				return t
@@ -36,7 +36,7 @@ func TestToConfigRule(t *testing.T) {
 		},
 		{
 			name: "IP_Block",
-			rule: &Rule{IP: "142.250.0.0", RouteMode: "block"},
+			rule: &IPRule{IP: "142.250.0.0", RouteMode: "block"},
 			expected: func() *ip.Rule {
 				t, _ := ip.NewRule(config.RouteBlock, "142.250.0.0")
 				return t
@@ -45,31 +45,31 @@ func TestToConfigRule(t *testing.T) {
 		},
 		{
 			name:          "IP_Empty",
-			rule:          &Rule{IP: "", RouteMode: "direct"},
+			rule:          &IPRule{IP: "", RouteMode: "direct"},
 			expected:      nil,
-			expectedError: errEmptyIP,
+			expectedError: errIPEmptyRule,
 		},
 		{
 			name:          "IP_SpaceOnly",
-			rule:          &Rule{IP: "\r\n\r ", RouteMode: "direct"},
+			rule:          &IPRule{IP: "\r\n\r ", RouteMode: "direct"},
 			expected:      nil,
-			expectedError: errEmptyIP,
+			expectedError: errIPEmptyRule,
 		},
 		{
 			name:          "RouteMode_Empty",
-			rule:          &Rule{IP: "domain:google.com", RouteMode: ""},
+			rule:          &IPRule{IP: "domain:google.com", RouteMode: ""},
 			expected:      nil,
 			expectedError: apperr.NewValidationErr("IPRule_InvalidRouteMode", "route mode is empty"),
 		},
 		{
 			name:          "RouteMode_SpaceOnly",
-			rule:          &Rule{IP: "domain:google.com", RouteMode: "\r\n\t "},
+			rule:          &IPRule{IP: "domain:google.com", RouteMode: "\r\n\t "},
 			expected:      nil,
 			expectedError: apperr.NewValidationErr("IPRule_InvalidRouteMode", "route mode is empty"),
 		},
 		{
 			name:          "RouteMode_Unknown",
-			rule:          &Rule{IP: "domain:google.com", RouteMode: "bad"},
+			rule:          &IPRule{IP: "domain:google.com", RouteMode: "bad"},
 			expected:      nil,
 			expectedError: apperr.NewValidationErr("IPRule_InvalidRouteMode", "route mode 'bad' is unknown"),
 		},

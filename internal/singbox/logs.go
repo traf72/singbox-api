@@ -1,4 +1,4 @@
-package logs
+package singbox
 
 import (
 	"io"
@@ -7,17 +7,17 @@ import (
 	"github.com/traf72/singbox-api/internal/apperr"
 )
 
-var errEmptyPath = apperr.NewFatalErr("Log_EmptyPath", "path to the log file is not specified")
-var ErrFileNotFound = apperr.NewFatalErr("Log_NotFound", "log file not found")
+var errLogEmptyPath = apperr.NewFatalErr("Log_EmptyPath", "path to the log file is not specified")
+var ErrLogNotFound = apperr.NewFatalErr("Log_NotFound", "log file not found")
 
-func Open() (io.ReadCloser, apperr.Err) {
-	path, appErr := getPath()
+func GetLog() (io.ReadCloser, apperr.Err) {
+	path, appErr := getLogPath()
 	if appErr != nil {
 		return nil, appErr
 	}
 
 	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return nil, ErrFileNotFound
+		return nil, ErrLogNotFound
 	} else if err != nil {
 		return nil, apperr.NewFatalErr("Log_StatReadError", err.Error())
 	}
@@ -30,8 +30,8 @@ func Open() (io.ReadCloser, apperr.Err) {
 	return file, nil
 }
 
-func Truncate() apperr.Err {
-	path, appErr := getPath()
+func TruncateLog() apperr.Err {
+	path, appErr := getLogPath()
 	if appErr != nil {
 		return appErr
 	}
@@ -45,10 +45,10 @@ func Truncate() apperr.Err {
 	return nil
 }
 
-func getPath() (string, apperr.Err) {
+func getLogPath() (string, apperr.Err) {
 	path := os.Getenv("LOG_PATH")
 	if path == "" {
-		return "", errEmptyPath
+		return "", errLogEmptyPath
 	}
 
 	return path, nil

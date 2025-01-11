@@ -124,7 +124,7 @@ func errStatReading(err string) apperr.Err {
 }
 
 func Load() (*Config, apperr.Err) {
-	path, appErr := GetPath()
+	path, appErr := getConfPath()
 	if appErr != nil {
 		return nil, appErr
 	}
@@ -151,7 +151,7 @@ func Load() (*Config, apperr.Err) {
 var saveMutex sync.Mutex
 
 func Save(c *Config) apperr.Err {
-	path, appErr := GetPath()
+	path, appErr := getConfPath()
 	if appErr != nil {
 		return appErr
 	}
@@ -197,7 +197,7 @@ func Save(c *Config) apperr.Err {
 	return nil
 }
 
-func GetPath() (string, apperr.Err) {
+func getConfPath() (string, apperr.Err) {
 	path := os.Getenv("CONFIG_PATH")
 	if path == "" {
 		return "", errEmptyPath

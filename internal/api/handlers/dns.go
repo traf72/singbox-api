@@ -5,19 +5,19 @@ import (
 
 	"github.com/traf72/singbox-api/internal/api"
 	"github.com/traf72/singbox-api/internal/api/middleware"
-	"github.com/traf72/singbox-api/internal/app/dns"
+	"github.com/traf72/singbox-api/internal/app"
 	"github.com/traf72/singbox-api/internal/utils"
 )
 
 func addDNSRule(w http.ResponseWriter, r *http.Request) {
-	dnsReq := new(dns.Rule)
+	dnsReq := new(app.DNSRule)
 
 	if err := utils.FromJSON(r.Body, dnsReq); err != nil {
 		api.SendBadRequest(w, err.Error())
 		return
 	}
 
-	if err := dns.AddRule(dnsReq); err != nil {
+	if err := app.AddDNSRule(dnsReq); err != nil {
 		api.SendError(w, err)
 		return
 	}
@@ -26,14 +26,14 @@ func addDNSRule(w http.ResponseWriter, r *http.Request) {
 }
 
 func removeDNSRule(w http.ResponseWriter, r *http.Request) {
-	dnsReq := new(dns.Rule)
+	dnsReq := new(app.DNSRule)
 
 	if err := utils.FromJSON(r.Body, dnsReq); err != nil {
 		api.SendBadRequest(w, err.Error())
 		return
 	}
 
-	if err := dns.RemoveRule(dnsReq); err != nil {
+	if err := app.RemoveDNSRule(dnsReq); err != nil {
 		api.SendError(w, err)
 		return
 	}

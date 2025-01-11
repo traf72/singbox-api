@@ -5,10 +5,10 @@ import (
 
 	"github.com/traf72/singbox-api/internal/api"
 	"github.com/traf72/singbox-api/internal/api/middleware"
-	"github.com/traf72/singbox-api/internal/config/singbox"
+	"github.com/traf72/singbox-api/internal/singbox"
 )
 
-func start(w http.ResponseWriter, r *http.Request) {
+func startSingbox(w http.ResponseWriter, r *http.Request) {
 	if err := singbox.Start(); err != nil {
 		api.SendError(w, err)
 	}
@@ -16,7 +16,7 @@ func start(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func stop(w http.ResponseWriter, r *http.Request) {
+func stopSingbox(w http.ResponseWriter, r *http.Request) {
 	if err := singbox.Stop(); err != nil {
 		api.SendError(w, err)
 	}
@@ -24,7 +24,7 @@ func stop(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func restart(w http.ResponseWriter, r *http.Request) {
+func restartSingbox(w http.ResponseWriter, r *http.Request) {
 	if err := singbox.Restart(); err != nil {
 		api.SendError(w, err)
 	}
@@ -33,13 +33,13 @@ func restart(w http.ResponseWriter, r *http.Request) {
 }
 
 func SingboxStartHandler() http.Handler {
-	return middleware.NewHandlerFunc(start).Build()
+	return middleware.NewHandlerFunc(startSingbox).Build()
 }
 
 func SingboxStopHandler() http.Handler {
-	return middleware.NewHandlerFunc(stop).Build()
+	return middleware.NewHandlerFunc(stopSingbox).Build()
 }
 
 func SingboxRestartHandler() http.Handler {
-	return middleware.NewHandlerFunc(restart).Build()
+	return middleware.NewHandlerFunc(restartSingbox).Build()
 }

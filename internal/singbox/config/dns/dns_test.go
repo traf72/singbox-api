@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/traf72/singbox-api/internal/apperr"
-	"github.com/traf72/singbox-api/internal/config"
+	"github.com/traf72/singbox-api/internal/singbox/config"
 )
 
 func TestRuleType_IsValid(t *testing.T) {

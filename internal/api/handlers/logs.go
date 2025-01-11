@@ -8,15 +8,15 @@ import (
 	"github.com/traf72/singbox-api/internal/api/header"
 	"github.com/traf72/singbox-api/internal/api/middleware"
 	"github.com/traf72/singbox-api/internal/api/query"
-	"github.com/traf72/singbox-api/internal/app/logs"
+	"github.com/traf72/singbox-api/internal/app"
 	"github.com/traf72/singbox-api/internal/apperr"
-	dlogs "github.com/traf72/singbox-api/internal/config/logs"
+	"github.com/traf72/singbox-api/internal/singbox"
 )
 
-func download(w http.ResponseWriter, r *http.Request) {
-	file, appErr := dlogs.Open()
+func downloadLog(w http.ResponseWriter, r *http.Request) {
+	file, appErr := singbox.GetLog()
 	if appErr != nil {
-		if appErr == dlogs.ErrFileNotFound {
+		if appErr == singbox.ErrLogNotFound {
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
@@ -35,17 +35,17 @@ func download(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func enable(w http.ResponseWriter, r *http.Request) {
-	setEnabled(w, r, true)
+func enableLog(w http.ResponseWriter, r *http.Request) {
+	setLogEnabled(w, r, true)
 }
 
-func disable(w http.ResponseWriter, r *http.Request) {
-	setEnabled(w, r, false)
+func disableLog(w http.ResponseWriter, r *http.Request) {
+	setLogEnabled(w, r, false)
 }
 
-func setEnabled(w http.ResponseWriter, r *http.Request, enable bool) {
+func setLogEnabled(w http.ResponseWriter, r *http.Request, enable bool) {
 	q := r.URL.Query()
-	restart, err := query.GetBool(q, "restart", true)
+	restart, err := query.GetBool(q, "restart", false)
 	if err != nil {
 		api.SendBadRequest(w, err.Error())
 		return
@@ -57,21 +57,41 @@ func setEnabled(w http.ResponseWriter, r *http.Request, enable bool) {
 		return
 	}
 
-	if err := logs.SetEnabled(enable, restart, truncate); err != nil {
+	var f func(bool, bool) apperr.Err
+	if enable {
+		f = app.EnableLog
+	} else {
+		f = app.DisableLog
+	}
+
+	if err := f(restart, truncate); err != nil {
 		api.SendError(w, err)
 	}
 
 	w.WriteHeader(http.StatusNoContent)
 }
 
+func truncateLog(w http.ResponseWriter, _ *http.Request) {
+	if appErr := app.TruncateLog(); appErr != nil {
+		api.SendError(w, appErr)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func LogDownloadHandler() http.Handler {
+	return middleware.NewHandlerFunc(downloadLog).Build()
+}
+
 func LogsEnableHandler() http.Handler {
-	return middleware.NewHandlerFunc(enable).Build()
+	return middleware.NewHandlerFunc(enableLog).Build()
 }
 
 func LogsDisableHandler() http.Handler {
-	return middleware.NewHandlerFunc(disable).Build()
+	return middleware.NewHandlerFunc(disableLog).Build()
 }
 
-func LogsDownloadHandler() http.Handler {
-	return middleware.NewHandlerFunc(download).Build()
+func LogTruncateHandler() http.Handler {
+	return middleware.NewHandlerFunc(truncateLog).Build()
 }
