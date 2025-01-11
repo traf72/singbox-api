@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/traf72/singbox-api/internal/api"
+	"github.com/traf72/singbox-api/internal/api/header"
 	"github.com/traf72/singbox-api/internal/api/middleware"
 	"github.com/traf72/singbox-api/internal/api/query"
 	"github.com/traf72/singbox-api/internal/app/config"
@@ -23,7 +24,7 @@ func getConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if download {
-		api.SetAttachment(w, "config.json")
+		header.SetAttachment(w, "config.json")
 	}
 
 	api.SendJson(w, c)

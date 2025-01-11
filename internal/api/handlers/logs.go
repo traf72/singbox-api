@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/traf72/singbox-api/internal/api"
+	"github.com/traf72/singbox-api/internal/api/header"
 	"github.com/traf72/singbox-api/internal/api/middleware"
 	"github.com/traf72/singbox-api/internal/api/query"
 	"github.com/traf72/singbox-api/internal/app/logs"
@@ -26,8 +27,8 @@ func download(w http.ResponseWriter, r *http.Request) {
 
 	defer file.Close()
 
-	api.SetContentType(w, api.ContentTypeTextPlain)
-	api.SetAttachment(w, "log.txt")
+	header.SetContentType(w, header.ContentTypeTextPlain)
+	header.SetAttachment(w, "log.txt")
 
 	if _, err := io.Copy(w, file); err != nil {
 		api.SendInternalServerError(w, apperr.NewFatalErr("Log_WriteError", err.Error()))

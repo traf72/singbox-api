@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/traf72/singbox-api/internal/api/header"
 	"github.com/traf72/singbox-api/internal/apperr"
 	"github.com/traf72/singbox-api/internal/utils"
 )
@@ -11,7 +12,7 @@ import (
 var jsonSerializeOptions = &utils.JSONOptions{Indent: "    ", EscapeHTML: false}
 
 func SendJson(w http.ResponseWriter, body any) {
-	SetContentType(w, ContentTypeJson)
+	header.SetContentType(w, header.ContentTypeJson)
 
 	if err := utils.ToJSON(w, body, jsonSerializeOptions); err != nil {
 		SendInternalServerError(w, apperr.NewFatalErr("JsonEncodingError", err.Error()))

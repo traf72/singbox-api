@@ -1,4 +1,4 @@
-package api
+package header
 
 import (
 	"fmt"
@@ -6,8 +6,8 @@ import (
 )
 
 const (
-	HeaderContentType        = "Content-Type"
-	HeaderContentDisposition = "Content-Disposition"
+	ContentType        = "Content-Type"
+	ContentDisposition = "Content-Disposition"
 )
 
 const (
@@ -16,11 +16,11 @@ const (
 )
 
 func SetContentType(w http.ResponseWriter, value string) {
-	w.Header().Set(HeaderContentType, value)
+	w.Header().Set(ContentType, value)
 }
 
 func SetContentDisposition(w http.ResponseWriter, value string) {
-	w.Header().Set(HeaderContentDisposition, value)
+	w.Header().Set(ContentDisposition, value)
 }
 
 func SetAttachment(w http.ResponseWriter, fileName string) {
