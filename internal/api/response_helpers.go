@@ -11,7 +11,7 @@ import (
 var jsonSerializeOptions = &utils.JSONOptions{Indent: "    ", EscapeHTML: false}
 
 func SendJson(w http.ResponseWriter, body any) {
-	w.Header().Set("Content-Type", "application/json")
+	SetContentType(w, ContentTypeJson)
 
 	if err := utils.ToJSON(w, body, jsonSerializeOptions); err != nil {
 		SendInternalServerError(w, apperr.NewFatalErr("JsonEncodingError", err.Error()))

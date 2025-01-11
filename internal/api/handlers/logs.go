@@ -26,8 +26,8 @@ func download(w http.ResponseWriter, r *http.Request) {
 
 	defer file.Close()
 
-	w.Header().Set("Content-Type", "text/plain")
-	w.Header().Set("Content-Disposition", "attachment; filename=log.txt")
+	api.SetContentType(w, api.ContentTypeTextPlain)
+	api.SetAttachment(w, "log.txt")
 
 	if _, err := io.Copy(w, file); err != nil {
 		api.SendInternalServerError(w, apperr.NewFatalErr("Log_WriteError", err.Error()))

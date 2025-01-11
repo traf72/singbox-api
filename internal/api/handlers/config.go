@@ -23,7 +23,7 @@ func getConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if download {
-		w.Header().Set("Content-Disposition", "attachment; filename=config.json")
+		api.SetAttachment(w, "config.json")
 	}
 
 	api.SendJson(w, c)
