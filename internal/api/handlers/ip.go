@@ -5,6 +5,7 @@ import (
 
 	"github.com/traf72/singbox-api/internal/api"
 	"github.com/traf72/singbox-api/internal/api/middleware"
+	"github.com/traf72/singbox-api/internal/api/query"
 	"github.com/traf72/singbox-api/internal/app"
 	"github.com/traf72/singbox-api/internal/utils"
 )
@@ -17,7 +18,13 @@ func addIPRule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := app.AddIPRule(ipReq); err != nil {
+	noRestart, err := query.GetBool(r.URL.Query(), "norestart", false)
+	if err != nil {
+		api.SendBadRequest(w, err.Error())
+		return
+	}
+
+	if err := app.AddIPRule(ipReq, !noRestart); err != nil {
 		api.SendError(w, err)
 		return
 	}
@@ -33,7 +40,13 @@ func removeIPRule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := app.RemoveIPRule(ipReq); err != nil {
+	noRestart, err := query.GetBool(r.URL.Query(), "norestart", false)
+	if err != nil {
+		api.SendBadRequest(w, err.Error())
+		return
+	}
+
+	if err := app.RemoveIPRule(ipReq, !noRestart); err != nil {
 		api.SendError(w, err)
 		return
 	}

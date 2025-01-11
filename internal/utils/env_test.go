@@ -9,36 +9,36 @@ import (
 
 func TestGetEnv(t *testing.T) {
 	tests := []struct {
-		name          string
-		envKey        string
-		envIsSet      bool
-		envValue      string
-		defaultValue  string
-		expectedValue string
+		name        string
+		envKey      string
+		envIsSet    bool
+		envVal      string
+		defaultVal  string
+		expectedVal string
 	}{
 		{
-			name:          "Environment variable is set",
-			envKey:        "TEST_ENV",
-			envIsSet:      true,
-			envValue:      "set_value",
-			defaultValue:  "default_value",
-			expectedValue: "set_value",
+			name:        "Environment variable is set",
+			envKey:      "TEST_ENV",
+			envIsSet:    true,
+			envVal:      "set_value",
+			defaultVal:  "default_value",
+			expectedVal: "set_value",
 		},
 		{
-			name:          "Environment variable is unset",
-			envKey:        "TEST_ENV",
-			envIsSet:      false,
-			envValue:      "",
-			defaultValue:  "default_value",
-			expectedValue: "default_value",
+			name:        "Environment variable is unset",
+			envKey:      "TEST_ENV",
+			envIsSet:    false,
+			envVal:      "",
+			defaultVal:  "default_value",
+			expectedVal: "default_value",
 		},
 		{
-			name:          "Environment variable is explicitly empty",
-			envKey:        "TEST_ENV",
-			envIsSet:      true,
-			envValue:      "",
-			defaultValue:  "default_value",
-			expectedValue: "default_value",
+			name:        "Environment variable is explicitly empty",
+			envKey:      "TEST_ENV",
+			envIsSet:    true,
+			envVal:      "",
+			defaultVal:  "default_value",
+			expectedVal: "default_value",
 		},
 	}
 
@@ -48,12 +48,12 @@ func TestGetEnv(t *testing.T) {
 			assert.NoError(t, err)
 
 			if tt.envIsSet {
-				err := os.Setenv(tt.envKey, tt.envValue)
+				err := os.Setenv(tt.envKey, tt.envVal)
 				assert.NoError(t, err)
 			}
 
-			result := GetEnv(tt.envKey, tt.defaultValue)
-			assert.Equal(t, tt.expectedValue, result)
+			result := GetEnv(tt.envKey, tt.defaultVal)
+			assert.Equal(t, tt.expectedVal, result)
 		})
 	}
 }

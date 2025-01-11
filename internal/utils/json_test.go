@@ -16,11 +16,11 @@ type testStruct struct {
 
 func TestFromJSON(t *testing.T) {
 	tests := []struct {
-		name          string
-		input         string
-		target        any
-		expected      any
-		expectedError string
+		name        string
+		input       string
+		target      any
+		expected    any
+		expectedErr string
 	}{
 		{
 			name:     "Valid Struct",
@@ -50,16 +50,16 @@ func TestFromJSON(t *testing.T) {
 			target:   &[]int{},
 		},
 		{
-			name:          "Invalid JSON",
-			input:         `{"name": "John", "age": , "email": "john@example.com"}`,
-			target:        &testStruct{},
-			expectedError: "failed to parse json",
+			name:        "Invalid JSON",
+			input:       `{"name": "John", "age": , "email": "john@example.com"}`,
+			target:      &testStruct{},
+			expectedErr: "failed to parse json",
 		},
 		{
-			name:          "Empty Input",
-			input:         "",
-			target:        &testStruct{},
-			expectedError: "failed to parse json",
+			name:        "Empty Input",
+			input:       "",
+			target:      &testStruct{},
+			expectedErr: "failed to parse json",
 		},
 	}
 
@@ -68,16 +68,16 @@ func TestFromJSON(t *testing.T) {
 			switch target := tt.target.(type) {
 			case *testStruct:
 				err := FromJSON(strings.NewReader(tt.input), target)
-				assertResult(t, err, tt.expectedError, tt.expected, *target)
+				assertResult(t, err, tt.expectedErr, tt.expected, *target)
 			case *string:
 				err := FromJSON(strings.NewReader(tt.input), target)
-				assertResult(t, err, tt.expectedError, tt.expected, *target)
+				assertResult(t, err, tt.expectedErr, tt.expected, *target)
 			case *[]testStruct:
 				err := FromJSON(strings.NewReader(tt.input), target)
-				assertResult(t, err, tt.expectedError, tt.expected, *target)
+				assertResult(t, err, tt.expectedErr, tt.expected, *target)
 			case *[]int:
 				err := FromJSON(strings.NewReader(tt.input), target)
-				assertResult(t, err, tt.expectedError, tt.expected, *target)
+				assertResult(t, err, tt.expectedErr, tt.expected, *target)
 			default:
 				t.Fatalf("unsupported target type: %T", tt.target)
 			}
@@ -87,11 +87,11 @@ func TestFromJSON(t *testing.T) {
 
 func TestToJSON(t *testing.T) {
 	tests := []struct {
-		name          string
-		input         any
-		options       *JSONOptions
-		expected      string
-		expectedError string
+		name        string
+		input       any
+		options     *JSONOptions
+		expected    string
+		expectedErr string
 	}{
 		{
 			name:  "Valid Struct with Indent",
@@ -170,8 +170,8 @@ func TestToJSON(t *testing.T) {
 			options: &JSONOptions{
 				Indent: "",
 			},
-			expected:      "",
-			expectedError: "failed to serialize to json",
+			expected:    "",
+			expectedErr: "failed to serialize to json",
 		},
 	}
 
@@ -181,9 +181,9 @@ func TestToJSON(t *testing.T) {
 
 			err := ToJSON(&buf, tt.input, tt.options)
 
-			if tt.expectedError != "" {
+			if tt.expectedErr != "" {
 				assert.Error(t, err)
-				assert.Contains(t, err.Error(), tt.expectedError)
+				assert.Contains(t, err.Error(), tt.expectedErr)
 				return
 			}
 
@@ -193,12 +193,12 @@ func TestToJSON(t *testing.T) {
 	}
 }
 
-func assertResult(t *testing.T, err error, expectedError string, expected, target any) {
+func assertResult(t *testing.T, err error, expectedErr string, expected, target any) {
 	t.Helper()
 
-	if expectedError != "" {
+	if expectedErr != "" {
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), expectedError)
+		assert.Contains(t, err.Error(), expectedErr)
 	} else {
 		assert.NoError(t, err)
 		assert.Equal(t, expected, target)

@@ -50,11 +50,11 @@ func TestRule_Validate(t *testing.T) {
 
 func TestNewRule(t *testing.T) {
 	tests := []struct {
-		name          string
-		mode          config.RouteMode
-		ip            string
-		expected      *Rule
-		expectedError apperr.Err
+		name        string
+		mode        config.RouteMode
+		ip          string
+		expected    *Rule
+		expectedErr apperr.Err
 	}{
 		{
 			name:     "IP_ValidIPv4_Proxy",
@@ -69,25 +69,25 @@ func TestNewRule(t *testing.T) {
 			expected: &Rule{mode: config.RouteBlock, ip: "10.0.0.0/24"},
 		},
 		{
-			name:          "IP_Empty",
-			mode:          config.RouteProxy,
-			ip:            "",
-			expected:      nil,
-			expectedError: errEmptyIP,
+			name:        "IP_Empty",
+			mode:        config.RouteProxy,
+			ip:          "",
+			expected:    nil,
+			expectedErr: errEmptyIP,
 		},
 		{
-			name:          "IP_Invalid",
-			mode:          config.RouteDirect,
-			ip:            "999.999.999.999",
-			expected:      nil,
-			expectedError: errInvalidIP("999.999.999.999"),
+			name:        "IP_Invalid",
+			mode:        config.RouteDirect,
+			ip:          "999.999.999.999",
+			expected:    nil,
+			expectedErr: errInvalidIP("999.999.999.999"),
 		},
 		{
-			name:          "IP_InvalidRouteMode",
-			mode:          "Unknown",
-			ip:            "192.168.0.1",
-			expected:      nil,
-			expectedError: apperr.NewValidationErr("IPRule_InvalidRouteMode", "invalid route mode 'Unknown'"),
+			name:        "IP_InvalidRouteMode",
+			mode:        "Unknown",
+			ip:          "192.168.0.1",
+			expected:    nil,
+			expectedErr: apperr.NewValidationErr("IPRule_InvalidRouteMode", "invalid route mode 'Unknown'"),
 		},
 		{
 			name:     "TrimSpaces",
@@ -101,7 +101,7 @@ func TestNewRule(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			rule, err := NewRule(tt.mode, tt.ip)
 			assert.Equal(t, tt.expected, rule)
-			assert.Equal(t, tt.expectedError, err)
+			assert.Equal(t, tt.expectedErr, err)
 		})
 	}
 }

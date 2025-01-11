@@ -57,12 +57,12 @@ func TestRule_Validate(t *testing.T) {
 
 func TestNewRule(t *testing.T) {
 	tests := []struct {
-		name          string
-		kind          RuleType
-		mode          config.RouteMode
-		domain        string
-		expected      *Rule
-		expectedError apperr.Err
+		name        string
+		kind        RuleType
+		mode        config.RouteMode
+		domain      string
+		expected    *Rule
+		expectedErr apperr.Err
 	}{
 		{"Suffix_Direct", Suffix, config.RouteDirect, " .Com ", &Rule{Suffix, config.RouteDirect, ".com"}, nil},
 		{"Suffix_Block", Suffix, config.RouteBlock, " .Com ", &Rule{Suffix, config.RouteBlock, ".com"}, nil},
@@ -81,7 +81,7 @@ func TestNewRule(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			rule, err := NewRule(tt.kind, tt.mode, tt.domain)
 			assert.Equal(t, tt.expected, rule)
-			assert.Equal(t, tt.expectedError, err)
+			assert.Equal(t, tt.expectedErr, err)
 		})
 	}
 }

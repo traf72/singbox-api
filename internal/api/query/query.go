@@ -7,14 +7,18 @@ import (
 )
 
 func GetBool(q url.Values, key string, fallback bool) (bool, error) {
+	if _, ok := q[key]; !ok {
+		return fallback, nil
+	}
+
 	val := q.Get(key)
 	if val == "" {
-		return fallback, nil
+		return true, nil
 	}
 
 	result, err := strconv.ParseBool(val)
 	if err != nil {
-		return false, fmt.Errorf("invalid value '%s' for query param '%s', expected a boolean (true, false)", val, key)
+		return fallback, fmt.Errorf("invalid value '%s' for query param '%s', expected a boolean (true, false)", val, key)
 	}
 
 	return result, nil

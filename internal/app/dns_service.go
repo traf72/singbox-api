@@ -87,7 +87,7 @@ func parseDNSRuleType(input string) (dns.RuleType, apperr.Err) {
 	}
 }
 
-func AddDNSRule(r *DNSRule) apperr.Err {
+func AddDNSRule(r *DNSRule, restart bool) apperr.Err {
 	rule, err := r.toConfigRule()
 	if err != nil {
 		return err
@@ -97,14 +97,16 @@ func AddDNSRule(r *DNSRule) apperr.Err {
 		return err
 	}
 
-	if err = singbox.Restart(); err != nil {
-		return err
+	if restart {
+		if err = singbox.Restart(); err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
-func RemoveDNSRule(r *DNSRule) apperr.Err {
+func RemoveDNSRule(r *DNSRule, restart bool) apperr.Err {
 	rule, err := r.toConfigRule()
 	if err != nil {
 		return err
@@ -114,8 +116,10 @@ func RemoveDNSRule(r *DNSRule) apperr.Err {
 		return err
 	}
 
-	if err = singbox.Restart(); err != nil {
-		return err
+	if restart {
+		if err = singbox.Restart(); err != nil {
+			return err
+		}
 	}
 
 	return nil

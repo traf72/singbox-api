@@ -45,7 +45,7 @@ func disableLog(w http.ResponseWriter, r *http.Request) {
 
 func setLogEnabled(w http.ResponseWriter, r *http.Request, enable bool) {
 	q := r.URL.Query()
-	restart, err := query.GetBool(q, "restart", false)
+	noRestart, err := query.GetBool(q, "norestart", false)
 	if err != nil {
 		api.SendBadRequest(w, err.Error())
 		return
@@ -64,7 +64,7 @@ func setLogEnabled(w http.ResponseWriter, r *http.Request, enable bool) {
 		f = app.DisableLog
 	}
 
-	if err := f(restart, truncate); err != nil {
+	if err := f(!noRestart, truncate); err != nil {
 		api.SendError(w, err)
 	}
 

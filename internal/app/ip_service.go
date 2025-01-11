@@ -36,7 +36,7 @@ func (r *IPRule) toConfigRule() (*ip.Rule, apperr.Err) {
 	return rule, nil
 }
 
-func AddIPRule(r *IPRule) apperr.Err {
+func AddIPRule(r *IPRule, restart bool) apperr.Err {
 	rule, err := r.toConfigRule()
 	if err != nil {
 		return err
@@ -46,14 +46,16 @@ func AddIPRule(r *IPRule) apperr.Err {
 		return err
 	}
 
-	if err = singbox.Restart(); err != nil {
-		return err
+	if restart {
+		if err = singbox.Restart(); err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
-func RemoveIPRule(r *IPRule) apperr.Err {
+func RemoveIPRule(r *IPRule, restart bool) apperr.Err {
 	rule, err := r.toConfigRule()
 	if err != nil {
 		return err
@@ -63,8 +65,10 @@ func RemoveIPRule(r *IPRule) apperr.Err {
 		return err
 	}
 
-	if err = singbox.Restart(); err != nil {
-		return err
+	if restart {
+		if err = singbox.Restart(); err != nil {
+			return err
+		}
 	}
 
 	return nil

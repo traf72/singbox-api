@@ -40,10 +40,10 @@ func TestParseDNSRuleType(t *testing.T) {
 
 func Test_DNSRuleToConfigRule(t *testing.T) {
 	tests := []struct {
-		name          string
-		rule          *DNSRule
-		expected      *dns.Rule
-		expectedError apperr.Err
+		name        string
+		rule        *DNSRule
+		expected    *dns.Rule
+		expectedErr apperr.Err
 	}{
 		{
 			name: "Domain_Proxy_TrimSpace_LowerCase",
@@ -52,7 +52,7 @@ func Test_DNSRuleToConfigRule(t *testing.T) {
 				t, _ := dns.NewRule(dns.Domain, config.RouteProxy, "google.com")
 				return t
 			}(),
-			expectedError: nil,
+			expectedErr: nil,
 		},
 		{
 			name: "Domain_Full_Direct",
@@ -61,7 +61,7 @@ func Test_DNSRuleToConfigRule(t *testing.T) {
 				t, _ := dns.NewRule(dns.Domain, config.RouteDirect, "google.com")
 				return t
 			}(),
-			expectedError: nil,
+			expectedErr: nil,
 		},
 		{
 			name: "Suffix_Block",
@@ -70,7 +70,7 @@ func Test_DNSRuleToConfigRule(t *testing.T) {
 				t, _ := dns.NewRule(dns.Suffix, config.RouteBlock, "mail.google.com")
 				return t
 			}(),
-			expectedError: nil,
+			expectedErr: nil,
 		},
 		{
 			name: "Keyword_Direct",
@@ -79,7 +79,7 @@ func Test_DNSRuleToConfigRule(t *testing.T) {
 				t, _ := dns.NewRule(dns.Keyword, config.RouteDirect, "google")
 				return t
 			}(),
-			expectedError: nil,
+			expectedErr: nil,
 		},
 		{
 			name: "Regex_Proxy",
@@ -88,67 +88,67 @@ func Test_DNSRuleToConfigRule(t *testing.T) {
 				t, _ := dns.NewRule(dns.Regex, config.RouteProxy, "you.*be")
 				return t
 			}(),
-			expectedError: nil,
+			expectedErr: nil,
 		},
 		{
-			name:          "Rule_Empty",
-			rule:          &DNSRule{Domain: "", RouteMode: "direct"},
-			expected:      nil,
-			expectedError: errDNSEmptyRule,
+			name:        "Rule_Empty",
+			rule:        &DNSRule{Domain: "", RouteMode: "direct"},
+			expected:    nil,
+			expectedErr: errDNSEmptyRule,
 		},
 		{
-			name:          "Domain_SpaceOnly",
-			rule:          &DNSRule{Domain: "\r\n\r ", RouteMode: "direct"},
-			expected:      nil,
-			expectedError: errDNSEmptyRule,
+			name:        "Domain_SpaceOnly",
+			rule:        &DNSRule{Domain: "\r\n\r ", RouteMode: "direct"},
+			expected:    nil,
+			expectedErr: errDNSEmptyRule,
 		},
 		{
-			name:          "Domain_TooManyParts",
-			rule:          &DNSRule{Domain: "domain:google.com:extra", RouteMode: "direct"},
-			expected:      nil,
-			expectedError: errDNSTooManyParts("domain:google.com:extra"),
+			name:        "Domain_TooManyParts",
+			rule:        &DNSRule{Domain: "domain:google.com:extra", RouteMode: "direct"},
+			expected:    nil,
+			expectedErr: errDNSTooManyParts("domain:google.com:extra"),
 		},
 		{
-			name:          "RuleType_Empty",
-			rule:          &DNSRule{Domain: ":google.com", RouteMode: "direct"},
-			expected:      nil,
-			expectedError: errDNSEmptyType,
+			name:        "RuleType_Empty",
+			rule:        &DNSRule{Domain: ":google.com", RouteMode: "direct"},
+			expected:    nil,
+			expectedErr: errDNSEmptyType,
 		},
 		{
-			name:          "RuleType_SpaceOnly",
-			rule:          &DNSRule{Domain: "\t\r\n :google.com", RouteMode: "direct"},
-			expected:      nil,
-			expectedError: errDNSEmptyType,
+			name:        "RuleType_SpaceOnly",
+			rule:        &DNSRule{Domain: "\t\r\n :google.com", RouteMode: "direct"},
+			expected:    nil,
+			expectedErr: errDNSEmptyType,
 		},
 		{
-			name:          "RuleType_Unknown",
-			rule:          &DNSRule{Domain: "bad:google.com", RouteMode: "direct"},
-			expected:      nil,
-			expectedError: errDNSUnknownType("bad"),
+			name:        "RuleType_Unknown",
+			rule:        &DNSRule{Domain: "bad:google.com", RouteMode: "direct"},
+			expected:    nil,
+			expectedErr: errDNSUnknownType("bad"),
 		},
 		{
-			name:          "RouteMode_Empty",
-			rule:          &DNSRule{Domain: "domain:google.com", RouteMode: ""},
-			expected:      nil,
-			expectedError: apperr.NewValidationErr("DNSRule_InvalidRouteMode", "route mode is empty"),
+			name:        "RouteMode_Empty",
+			rule:        &DNSRule{Domain: "domain:google.com", RouteMode: ""},
+			expected:    nil,
+			expectedErr: apperr.NewValidationErr("DNSRule_InvalidRouteMode", "route mode is empty"),
 		},
 		{
-			name:          "RouteMode_SpaceOnly",
-			rule:          &DNSRule{Domain: "domain:google.com", RouteMode: "\r\n\t "},
-			expected:      nil,
-			expectedError: apperr.NewValidationErr("DNSRule_InvalidRouteMode", "route mode is empty"),
+			name:        "RouteMode_SpaceOnly",
+			rule:        &DNSRule{Domain: "domain:google.com", RouteMode: "\r\n\t "},
+			expected:    nil,
+			expectedErr: apperr.NewValidationErr("DNSRule_InvalidRouteMode", "route mode is empty"),
 		},
 		{
-			name:          "RouteMode_Unknown",
-			rule:          &DNSRule{Domain: "domain:google.com", RouteMode: "bad"},
-			expected:      nil,
-			expectedError: apperr.NewValidationErr("DNSRule_InvalidRouteMode", "route mode 'bad' is unknown"),
+			name:        "RouteMode_Unknown",
+			rule:        &DNSRule{Domain: "domain:google.com", RouteMode: "bad"},
+			expected:    nil,
+			expectedErr: apperr.NewValidationErr("DNSRule_InvalidRouteMode", "route mode 'bad' is unknown"),
 		},
 		{
-			name:          "Domain_Empty",
-			rule:          &DNSRule{Domain: "domain:", RouteMode: "direct"},
-			expected:      nil,
-			expectedError: apperr.NewValidationErr("DNSRule_EmptyDomain", "domain is empty"),
+			name:        "Domain_Empty",
+			rule:        &DNSRule{Domain: "domain:", RouteMode: "direct"},
+			expected:    nil,
+			expectedErr: apperr.NewValidationErr("DNSRule_EmptyDomain", "domain is empty"),
 		},
 	}
 
@@ -156,7 +156,7 @@ func Test_DNSRuleToConfigRule(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			r, err := tt.rule.toConfigRule()
 			assert.Equal(t, tt.expected, r)
-			assert.Equal(t, tt.expectedError, err)
+			assert.Equal(t, tt.expectedErr, err)
 		})
 	}
 }
