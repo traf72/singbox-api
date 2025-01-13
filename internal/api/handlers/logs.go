@@ -36,14 +36,6 @@ func downloadLog(w http.ResponseWriter, r *http.Request) {
 }
 
 func enableLog(w http.ResponseWriter, r *http.Request) {
-	setLogEnabled(w, r, true)
-}
-
-func disableLog(w http.ResponseWriter, r *http.Request) {
-	setLogEnabled(w, r, false)
-}
-
-func setLogEnabled(w http.ResponseWriter, r *http.Request, enable bool) {
 	q := r.URL.Query()
 	noRestart, err := query.GetBool(q, "norestart", false)
 	if err != nil {
@@ -57,14 +49,38 @@ func setLogEnabled(w http.ResponseWriter, r *http.Request, enable bool) {
 		return
 	}
 
-	var f func(bool, bool) apperr.Err
-	if enable {
-		f = app.EnableLog
-	} else {
-		f = app.DisableLog
+	level := query.GetString(q, "level", "")
+	if err := app.EnableLog(!noRestart, truncate, level); err != nil {
+		api.SendError(w, err)
 	}
 
-	if err := f(!noRestart, truncate); err != nil {
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func disableLog(w http.ResponseWriter, r *http.Request) {
+	noRestart, err := query.GetBool(r.URL.Query(), "norestart", false)
+	if err != nil {
+		api.SendBadRequest(w, err.Error())
+		return
+	}
+
+	if err := app.DisableLog(!noRestart); err != nil {
+		api.SendError(w, err)
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func setLogLevel(w http.ResponseWriter, r *http.Request) {
+	noRestart, err := query.GetBool(r.URL.Query(), "norestart", false)
+	if err != nil {
+		api.SendBadRequest(w, err.Error())
+		return
+	}
+
+	l := r.PathValue("level")
+
+	if err := app.SetLogLevel(l, !noRestart); err != nil {
 		api.SendError(w, err)
 	}
 
@@ -94,4 +110,8 @@ func LogsDisableHandler() http.Handler {
 
 func LogTruncateHandler() http.Handler {
 	return middleware.NewHandlerFunc(truncateLog).Build()
+}
+
+func LogSetLevelHandler() http.Handler {
+	return middleware.NewHandlerFunc(setLogLevel).Build()
 }

@@ -23,3 +23,11 @@ func GetBool(q url.Values, key string, fallback bool) (bool, error) {
 
 	return result, nil
 }
+
+func GetString(q url.Values, key string, fallback string) string {
+	if _, ok := q[key]; !ok {
+		return fallback
+	}
+
+	return q.Get(key)
+}

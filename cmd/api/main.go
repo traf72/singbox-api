@@ -40,6 +40,7 @@ func main() {
 	router.Handle("PUT /logs/enable", handlers.LogsEnableHandler())
 	router.Handle("PUT /logs/disable", handlers.LogsDisableHandler())
 	router.Handle("PUT /logs/truncate", handlers.LogTruncateHandler())
+	router.Handle("PUT /logs/level/{level}", handlers.LogSetLevelHandler())
 
 	// For Windows better to specify the full address (with IP instead of just ":8080") to avoid the Firewall issues
 	// https://stackoverflow.com/questions/55201561/golang-run-on-windows-without-deal-with-the-firewall
