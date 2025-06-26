@@ -114,14 +114,18 @@ func removeRule(r *Rule, c *config.Conf) (removed bool) {
 func getRouteRules(m config.RouteMode, c *config.Conf) *[]string {
 	mode := string(m)
 	ruleSetIdx := slices.IndexFunc(c.Route.Rules, func(rr config.RouteRule) bool {
-		return rr.Outbound == mode
+		return rr.Outbound == mode || (m == config.RouteBlock && rr.Action == "reject")
 	})
 
 	if ruleSetIdx == -1 {
-		c.Route.Rules = append(c.Route.Rules, config.RouteRule{
-			Outbound: mode,
-			Rule:     config.Rule{},
-		})
+		newRule := config.RouteRule{Rule: config.Rule{}}
+		if m == config.RouteBlock {
+			newRule.Action = "reject"
+		} else {
+			newRule.Outbound = mode
+		}
+
+		c.Route.Rules = append(c.Route.Rules, newRule)
 		ruleSetIdx = len(c.Route.Rules) - 1
 	}
 
