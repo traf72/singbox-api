@@ -203,14 +203,18 @@ func removeFromDNS(r *Rule, c *config.Conf) bool {
 func getRouteRules(r *Rule, c *config.Conf) *[]string {
 	mode := string(r.mode)
 	ruleSetIdx := slices.IndexFunc(c.Route.Rules, func(rr config.RouteRule) bool {
-		return rr.Outbound == mode
+		return rr.Outbound == mode || (r.mode == config.RouteBlock && rr.Action == "reject")
 	})
 
 	if ruleSetIdx == -1 {
-		c.Route.Rules = append(c.Route.Rules, config.RouteRule{
-			Outbound: mode,
-			Rule:     config.Rule{},
-		})
+		newRule := config.RouteRule{Rule: config.Rule{}}
+		if r.mode == config.RouteBlock {
+			newRule.Action = "reject"
+		} else {
+			newRule.Outbound = mode
+		}
+
+		c.Route.Rules = append(c.Route.Rules, newRule)
 		ruleSetIdx = len(c.Route.Rules) - 1
 	}
 

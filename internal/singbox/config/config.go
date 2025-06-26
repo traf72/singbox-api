@@ -26,7 +26,9 @@ type logging struct {
 }
 
 type dns struct {
-	IndependentCache bool        `json:"independent_cache"`
+	IndependentCache bool        `json:"independent_cache,omitempty"`
+	CacheCapacity    int         `json:"cache_capacity,omitempty"`
+	ReverseMapping   bool        `json:"reverse_mapping,omitempty"`
 	Final            string      `json:"final"`
 	Rules            []DNSRule   `json:"rules"`
 	Servers          []dnsServer `json:"servers"`
@@ -52,19 +54,18 @@ type dnsServer struct {
 }
 
 type inbound struct {
-	Listen                   string   `json:"listen,omitempty"`
-	ListenPort               int      `json:"listen_port,omitempty"`
-	AutoRoute                bool     `json:"auto_route,omitempty"`
-	EndpointIndependentNAT   *bool    `json:"endpoint_independent_nat,omitempty"`
-	Address                  []string `json:"address,omitempty"`
-	InterfaceName            string   `json:"interface_name,omitempty"`
-	MTU                      int      `json:"mtu,omitempty"`
-	Stack                    string   `json:"stack,omitempty"`
-	StrictRoute              *bool    `json:"strict_route,omitempty"`
-	Sniff                    bool     `json:"sniff"`
-	SniffOverrideDestination bool     `json:"sniff_override_destination"`
-	Tag                      string   `json:"tag"`
-	Type                     string   `json:"type"`
+	Listen                 string   `json:"listen,omitempty"`
+	ListenPort             int      `json:"listen_port,omitempty"`
+	AutoRoute              bool     `json:"auto_route,omitempty"`
+	AutoRedirect           bool     `json:"auto_redirect,omitempty"`
+	EndpointIndependentNAT *bool    `json:"endpoint_independent_nat,omitempty"`
+	Address                []string `json:"address,omitempty"`
+	InterfaceName          string   `json:"interface_name,omitempty"`
+	MTU                    int      `json:"mtu,omitempty"`
+	Stack                  string   `json:"stack,omitempty"`
+	StrictRoute            *bool    `json:"strict_route,omitempty"`
+	Tag                    string   `json:"tag"`
+	Type                   string   `json:"type"`
 }
 
 type outbound struct {
@@ -106,8 +107,12 @@ type route struct {
 type RouteRule struct {
 	Rule
 	IP_CIDR  []string `json:"ip_cidr,omitempty"`
-	Outbound string   `json:"outbound"`
+	Inbound  []string `json:"inbound,omitempty"`
+	Outbound string   `json:"outbound,omitempty"`
 	Protocol string   `json:"protocol,omitempty"`
+	Action   string   `json:"action,omitempty"`
+	Strategy string   `json:"strategy,omitempty"`
+	Timeout  string   `json:"timeout,omitempty"`
 }
 
 type Config struct {
