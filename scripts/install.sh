@@ -3,15 +3,22 @@
 # Exit immediately if a command exits with a non-zero status
 set -e
 
-# Check if a user parameter is provided
-if [ -z "$1" ]; then
-    echo "Usage: $0 <user>"
+# Variables
+PAT_FILE="$HOME/github-singbox-repos-pat"
+
+PAT=${GITHUB_TOKEN-}
+
+if [[ -z $PAT && -r $PAT_FILE ]]; then
+    read -r PAT < "$PAT_FILE"
+fi
+
+if [[ -z $PAT ]]; then
+    echo "Error: GitHub PAT not found.  Set GITHUB_TOKEN or create $PAT_FILE." >&2
     exit 1
 fi
 
-# Variables
-SERVICE_USER="$1"
-REPO_URL="git@github.com:traf72/singbox-api.git"
+SERVICE_USER="${1:-$(whoami)}"
+REPO_URL="https://${PAT}@github.com/traf72/singbox-api.git"
 BUILD_DIR="$HOME/singbox-api/src"
 INSTALL_DIR="$HOME/singbox-api/bin"
 SERVICE_NAME="singbox-api"
