@@ -29,6 +29,7 @@ type dns struct {
 	IndependentCache bool        `json:"independent_cache,omitempty"`
 	CacheCapacity    int         `json:"cache_capacity,omitempty"`
 	ReverseMapping   bool        `json:"reverse_mapping,omitempty"`
+	Strategy         string      `json:"strategy,omitempty"`
 	Final            string      `json:"final"`
 	Rules            []DNSRule   `json:"rules"`
 	Servers          []dnsServer `json:"servers"`
