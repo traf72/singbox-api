@@ -48,7 +48,9 @@ type DNSRule struct {
 }
 
 type dnsServer struct {
-	Address         string `json:"address"`
+	Type            string `json:"type"`
+	Server          string `json:"server"`
+	Path            string `json:"path"`
 	AddressResolver string `json:"address_resolver,omitempty"`
 	Detour          string `json:"detour,omitempty"`
 	Tag             string `json:"tag"`
