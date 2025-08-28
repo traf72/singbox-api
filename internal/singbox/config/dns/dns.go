@@ -223,15 +223,30 @@ func getRouteRules(r *Rule, c *config.Conf) *[]string {
 }
 
 func getDNSRules(r *Rule, c *config.Conf) *[]string {
+	var wantAction, wantServer string
+	if r.mode == config.RouteBlock {
+		wantAction = "reject"
+	} else {
+		wantAction = "route"
+		wantServer = dnsRoute[r.mode]
+	}
+
 	ruleSetIdx := slices.IndexFunc(c.DNS.Rules, func(dr config.DNSRule) bool {
-		return dr.Server == dnsRoute[r.mode]
+		if wantAction == "reject" {
+			return dr.Action == "reject"
+		}
+		return dr.Action == "route" && dr.Server == wantServer
 	})
 
 	if ruleSetIdx == -1 {
-		c.DNS.Rules = append(c.DNS.Rules, config.DNSRule{
-			Server: dnsRoute[r.mode],
+		newRule := config.DNSRule{
 			Rule:   config.Rule{},
-		})
+			Action: wantAction,
+		}
+		if wantAction == "route" {
+			newRule.Server = wantServer
+		}
+		c.DNS.Rules = append(c.DNS.Rules, newRule)
 		ruleSetIdx = len(c.DNS.Rules) - 1
 	}
 

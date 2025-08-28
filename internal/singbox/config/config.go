@@ -44,16 +44,17 @@ type Rule struct {
 
 type DNSRule struct {
 	Rule
-	Server string `json:"server"`
+	Server string `json:"server,omitempty"`
+	Action string `json:"action,omitempty"`
 }
 
 type dnsServer struct {
-	Type            string `json:"type"`
-	Server          string `json:"server"`
-	Path            string `json:"path"`
-	AddressResolver string `json:"address_resolver,omitempty"`
-	Detour          string `json:"detour,omitempty"`
-	Tag             string `json:"tag"`
+	Type           string `json:"type"`
+	Server         string `json:"server"`
+	Path           string `json:"path,omitempty"`
+	DomainResolver string `json:"domain_resolver,omitempty"`
+	Detour         string `json:"detour,omitempty"`
+	Tag            string `json:"tag"`
 }
 
 type inbound struct {
@@ -102,9 +103,10 @@ type utls struct {
 }
 
 type route struct {
-	AutoDetectInterface bool        `json:"auto_detect_interface"`
-	Final               string      `json:"final"`
-	Rules               []RouteRule `json:"rules"`
+	AutoDetectInterface   bool        `json:"auto_detect_interface"`
+	Final                 string      `json:"final"`
+	DefaultDomainResolver string      `json:"default_domain_resolver,omitempty"`
+	Rules                 []RouteRule `json:"rules"`
 }
 
 type RouteRule struct {
