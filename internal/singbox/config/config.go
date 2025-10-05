@@ -40,6 +40,7 @@ type Rule struct {
 	DomainKeyword []string `json:"domain_keyword,omitempty"`
 	DomainRegex   []string `json:"domain_regex,omitempty"`
 	DomainSuffix  []string `json:"domain_suffix,omitempty"`
+	Strategy      string   `json:"strategy,omitempty"`
 }
 
 type DNSRule struct {
@@ -50,10 +51,12 @@ type DNSRule struct {
 
 type dnsServer struct {
 	Type           string `json:"type"`
-	Server         string `json:"server"`
+	Server         string `json:"server,omitempty"`
 	Path           string `json:"path,omitempty"`
 	DomainResolver string `json:"domain_resolver,omitempty"`
 	Detour         string `json:"detour,omitempty"`
+	Inet4Range     string `json:"inet4_range,omitempty"`
+	Inet6Range     string `json:"inet6_range,omitempty"`
 	Tag            string `json:"tag"`
 }
 
@@ -116,7 +119,6 @@ type RouteRule struct {
 	Outbound string   `json:"outbound,omitempty"`
 	Protocol string   `json:"protocol,omitempty"`
 	Action   string   `json:"action,omitempty"`
-	Strategy string   `json:"strategy,omitempty"`
 	Timeout  string   `json:"timeout,omitempty"`
 }
 
