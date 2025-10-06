@@ -41,12 +41,12 @@ type Rule struct {
 	DomainRegex   []string `json:"domain_regex,omitempty"`
 	DomainSuffix  []string `json:"domain_suffix,omitempty"`
 	Strategy      string   `json:"strategy,omitempty"`
+	Server        string   `json:"server,omitempty"`
+	Action        string   `json:"action,omitempty"`
 }
 
 type DNSRule struct {
 	Rule
-	Server string `json:"server,omitempty"`
-	Action string `json:"action,omitempty"`
 }
 
 type dnsServer struct {
@@ -106,10 +106,9 @@ type utls struct {
 }
 
 type route struct {
-	AutoDetectInterface   bool        `json:"auto_detect_interface"`
-	Final                 string      `json:"final"`
-	DefaultDomainResolver string      `json:"default_domain_resolver,omitempty"`
-	Rules                 []RouteRule `json:"rules"`
+	AutoDetectInterface bool        `json:"auto_detect_interface"`
+	Final               string      `json:"final"`
+	Rules               []RouteRule `json:"rules"`
 }
 
 type RouteRule struct {
@@ -118,7 +117,6 @@ type RouteRule struct {
 	Inbound  []string `json:"inbound,omitempty"`
 	Outbound string   `json:"outbound,omitempty"`
 	Protocol string   `json:"protocol,omitempty"`
-	Action   string   `json:"action,omitempty"`
 	Timeout  string   `json:"timeout,omitempty"`
 }
 

@@ -240,11 +240,10 @@ func getDNSRules(r *Rule, c *config.Conf) *[]string {
 
 	if ruleSetIdx == -1 {
 		newRule := config.DNSRule{
-			Rule:   config.Rule{},
-			Action: wantAction,
+			Rule: config.Rule{Action: wantAction},
 		}
 		if wantAction == "route" {
-			newRule.Server = wantServer
+			newRule.Rule.Server = wantServer
 		}
 		c.DNS.Rules = append(c.DNS.Rules, newRule)
 		ruleSetIdx = len(c.DNS.Rules) - 1
