@@ -77,6 +77,7 @@ type inbound struct {
 
 type outbound struct {
 	Method         string          `json:"method,omitempty"`
+	Password       string          `json:"password,omitempty"`
 	Flow           string          `json:"flow,omitempty"`
 	PacketEncoding string          `json:"packet_encoding,omitempty"`
 	Server         string          `json:"server,omitempty"`
