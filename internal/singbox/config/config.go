@@ -76,15 +76,16 @@ type inbound struct {
 }
 
 type outbound struct {
-	Method         string `json:"method,omitempty"`
-	Flow           string `json:"flow,omitempty"`
-	PacketEncoding string `json:"packet_encoding,omitempty"`
-	Server         string `json:"server,omitempty"`
-	ServerPort     int    `json:"server_port,omitempty"`
-	Tag            string `json:"tag"`
-	TLS            *tls   `json:"tls,omitempty"`
-	Type           string `json:"type"`
-	UUID           string `json:"uuid,omitempty"`
+	Method         string          `json:"method,omitempty"`
+	Flow           string          `json:"flow,omitempty"`
+	PacketEncoding string          `json:"packet_encoding,omitempty"`
+	Server         string          `json:"server,omitempty"`
+	ServerPort     int             `json:"server_port,omitempty"`
+	Tag            string          `json:"tag"`
+	TLS            *tls            `json:"tls,omitempty"`
+	Type           string          `json:"type"`
+	UUID           string          `json:"uuid,omitempty"`
+	DomainResolver *domainResolver `json:"domain_resolver,omitempty"`
 }
 
 type tls struct {
@@ -107,9 +108,15 @@ type utls struct {
 }
 
 type route struct {
-	AutoDetectInterface bool        `json:"auto_detect_interface"`
-	Final               string      `json:"final"`
-	Rules               []RouteRule `json:"rules"`
+	AutoDetectInterface   bool            `json:"auto_detect_interface"`
+	Final                 string          `json:"final"`
+	DefaultDomainResolver *domainResolver `json:"default_domain_resolver,omitempty"`
+	Rules                 []RouteRule     `json:"rules"`
+}
+
+type domainResolver struct {
+	Server   string `json:"server,omitempty"`
+	Strategy string `json:"strategy,omitempty"`
 }
 
 type RouteRule struct {
