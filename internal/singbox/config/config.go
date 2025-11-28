@@ -87,6 +87,12 @@ type outbound struct {
 	Type           string          `json:"type"`
 	UUID           string          `json:"uuid,omitempty"`
 	DomainResolver *domainResolver `json:"domain_resolver,omitempty"`
+	Transport      *transport      `json:"transport,omitempty"`
+}
+
+type transport struct {
+	Type        string `json:"type,omitempty"`
+	ServiceName string `json:"service_name,omitempty"`
 }
 
 type tls struct {
