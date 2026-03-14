@@ -33,7 +33,7 @@ func NewRule(m config.RouteMode, ip string) (*Rule, apperr.Err) {
 	return rule, nil
 }
 
-var ipRegex = regexp.MustCompile(`^([01]?\d\d?|2[0-4]\d|25[0-5])(?:\.(?:[01]?\d\d?|2[0-4]\d|25[0-5])){3}(?:/[0-2]\d|/3[0-2])?$`)
+var ipRegex = regexp.MustCompile(`^([01]?\d\d?|2[0-4]\d|25[0-5])(?:\.(?:[01]?\d\d?|2[0-4]\d|25[0-5])){3}(?:/(?:[0-9]|[12]\d|3[0-2]))?$`)
 
 func (r *Rule) validate() apperr.Err {
 	if err := r.mode.Validate(); err != nil {
