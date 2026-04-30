@@ -96,7 +96,7 @@ func (r *Rule) validate() apperr.Err {
 
 var dnsRoute = map[config.RouteMode]string{
 	config.RouteDirect: "dns-direct",
-	config.RouteProxy:  "dns-fakeip",
+	config.RouteProxy:  "dns-remote",
 	config.RouteBlock:  "dns-block",
 }
 
