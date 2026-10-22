@@ -34,6 +34,9 @@ func main() {
 	router.Handle("DELETE /outbounds/{tag}", handlers.RemoveOutboundHandler())
 	router.Handle("PUT /outbounds/selector/default", handlers.SetSelectorDefaultHandler())
 	router.Handle("PUT /route/mode", handlers.SetRouteModeHandler())
+	router.Handle("GET /subscription/settings", handlers.GetSubscriptionSettingsHandler())
+	router.Handle("PUT /subscription/settings", handlers.SetSubscriptionSettingsHandler())
+	router.Handle("PUT /subscription", handlers.UpdateSubscriptionHandler())
 
 	router.Handle("GET /config", handlers.GetConfigHandler())
 

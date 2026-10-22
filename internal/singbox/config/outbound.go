@@ -38,6 +38,9 @@ func errSelectorMemberNotFound(tag string) apperr.Err {
 }
 
 func AddVLESSOutbound(options *VLESSOutboundOptions) apperr.Err {
+	subscriptionMutex.Lock()
+	defer subscriptionMutex.Unlock()
+
 	c, err := Load()
 	if err != nil {
 		return err
@@ -47,7 +50,11 @@ func AddVLESSOutbound(options *VLESSOutboundOptions) apperr.Err {
 		return err
 	}
 
-	return Save(c)
+	if err := Save(c); err != nil {
+		return err
+	}
+
+	return protectManualOutbound(options.Tag, c.Conf)
 }
 
 func addVLESSOutbound(options *VLESSOutboundOptions, conf *Conf) apperr.Err {
@@ -91,6 +98,13 @@ func addVLESSOutbound(options *VLESSOutboundOptions, conf *Conf) apperr.Err {
 }
 
 func RemoveOutbound(tag string) apperr.Err {
+	subscriptionMutex.Lock()
+	defer subscriptionMutex.Unlock()
+
+	if err := validateManualOutboundRemoval(tag); err != nil {
+		return err
+	}
+
 	c, err := Load()
 	if err != nil {
 		return err
@@ -100,7 +114,11 @@ func RemoveOutbound(tag string) apperr.Err {
 		return err
 	}
 
-	return Save(c)
+	if err := Save(c); err != nil {
+		return err
+	}
+
+	return removeManualOutboundProtection(tag)
 }
 
 func SetProxySelectorDefault(tag string) apperr.Err {

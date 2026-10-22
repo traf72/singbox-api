@@ -47,6 +47,15 @@ func TestOutboundHandlers(t *testing.T) {
 
 	createResponse := serveJSONRequest(router, http.MethodPost, "/outbounds?norestart=true", outboundRequestBody)
 	require.Equal(t, http.StatusCreated, createResponse.Code, createResponse.Body.String())
+	settingsContents, err := os.ReadFile(configPath + ".subscription.json")
+	require.NoError(t, err)
+	var protection struct {
+		FixedOutbounds   []string `json:"fixed_outbounds"`
+		FallbackOutbound string   `json:"fallback_outbound"`
+	}
+	require.NoError(t, json.Unmarshal(settingsContents, &protection))
+	assert.Equal(t, []string{"existing-vless", "frankfurt-vless"}, protection.FixedOutbounds)
+	assert.Equal(t, "existing-vless", protection.FallbackOutbound)
 
 	contents, err := os.ReadFile(configPath)
 	require.NoError(t, err)
@@ -106,6 +115,14 @@ func TestOutboundHandlers(t *testing.T) {
 	require.NoError(t, json.Unmarshal(saved.Outbounds[0], &selector))
 	assert.Equal(t, []string{"existing-vless"}, selector.Outbounds)
 	assert.Equal(t, "existing-vless", selector.Default)
+	settingsContents, err = os.ReadFile(configPath + ".subscription.json")
+	require.NoError(t, err)
+	require.NoError(t, json.Unmarshal(settingsContents, &protection))
+	assert.Equal(t, []string{"existing-vless"}, protection.FixedOutbounds)
+
+	fallbackDeleteResponse := serveJSONRequest(router, http.MethodDelete, "/outbounds/existing-vless?norestart=true", "")
+	assert.Equal(t, http.StatusConflict, fallbackDeleteResponse.Code)
+	assert.Contains(t, fallbackDeleteResponse.Body.String(), "cannot delete the subscription fallback outbound")
 
 	missingResponse := serveJSONRequest(router, http.MethodDelete, "/outbounds/frankfurt-vless?norestart=true", "")
 	assert.Equal(t, http.StatusNotFound, missingResponse.Code)
