@@ -47,7 +47,8 @@ func TestOutboundHandlers(t *testing.T) {
 
 	createResponse := serveJSONRequest(router, http.MethodPost, "/outbounds?norestart=true", outboundRequestBody)
 	require.Equal(t, http.StatusCreated, createResponse.Code, createResponse.Body.String())
-	settingsContents, err := os.ReadFile(configPath + ".subscription.json")
+	settingsPath := filepath.Join(filepath.Dir(configPath), "config.subscription.state")
+	settingsContents, err := os.ReadFile(settingsPath)
 	require.NoError(t, err)
 	var protection struct {
 		FixedOutbounds   []string `json:"fixed_outbounds"`
@@ -115,7 +116,7 @@ func TestOutboundHandlers(t *testing.T) {
 	require.NoError(t, json.Unmarshal(saved.Outbounds[0], &selector))
 	assert.Equal(t, []string{"existing-vless"}, selector.Outbounds)
 	assert.Equal(t, "existing-vless", selector.Default)
-	settingsContents, err = os.ReadFile(configPath + ".subscription.json")
+	settingsContents, err = os.ReadFile(settingsPath)
 	require.NoError(t, err)
 	require.NoError(t, json.Unmarshal(settingsContents, &protection))
 	assert.Equal(t, []string{"existing-vless"}, protection.FixedOutbounds)

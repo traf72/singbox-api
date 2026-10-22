@@ -16,7 +16,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	router := http.NewServeMux()
 
 	router.Handle("GET /health", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -37,6 +36,9 @@ func main() {
 	router.Handle("GET /subscription/settings", handlers.GetSubscriptionSettingsHandler())
 	router.Handle("PUT /subscription/settings", handlers.SetSubscriptionSettingsHandler())
 	router.Handle("PUT /subscription", handlers.UpdateSubscriptionHandler())
+	router.Handle("GET /backups", handlers.ListBackupsHandler())
+	router.Handle("POST /backups/{name}/restore", handlers.RestoreBackupHandler())
+	router.Handle("DELETE /backups", handlers.RemoveOldBackupsHandler())
 
 	router.Handle("GET /config", handlers.GetConfigHandler())
 

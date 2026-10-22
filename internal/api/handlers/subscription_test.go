@@ -58,6 +58,7 @@ func TestSubscriptionHandlers(t *testing.T) {
 		"fixed_outbounds": ["fixed-vless"],
 		"fallback_outbound": "fixed-vless"
 	}`, getSettingsResponse.Body.String())
+	assert.FileExists(t, filepath.Join(filepath.Dir(configPath), "config.subscription.state"))
 
 	updateResponse := serveJSONRequest(router, http.MethodPut, "/subscription?norestart=true", `{
 		"version": 1,
@@ -116,7 +117,12 @@ func TestSubscriptionHandlers(t *testing.T) {
 	assert.Equal(t, "fixed-vless", saved.Outbounds[0].Default)
 	assert.Equal(t, "vpn.example.com", saved.Outbounds[3].Server)
 
-	backup, err := os.ReadFile(configPath + ".subscription.bak")
+	backupDirectory := filepath.Join(filepath.Dir(configPath), "backups")
+	backupFiles, err := os.ReadDir(backupDirectory)
+	require.NoError(t, err)
+	require.Len(t, backupFiles, 1)
+	assert.Regexp(t, `^\d{8}_\d{6}(?:_\d+)?$`, backupFiles[0].Name())
+	backup, err := os.ReadFile(filepath.Join(backupDirectory, backupFiles[0].Name()))
 	require.NoError(t, err)
 	assert.JSONEq(t, string(original), string(backup))
 

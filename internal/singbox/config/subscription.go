@@ -6,10 +6,13 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"path/filepath"
 	"regexp"
 	"slices"
+	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/traf72/singbox-api/internal/apperr"
 )
@@ -40,10 +43,17 @@ type SubscriptionUpdateResult struct {
 	Default   string                        `json:"default"`
 }
 
+type BackupInfo struct {
+	Name      string    `json:"name"`
+	CreatedAt time.Time `json:"created_at"`
+	Size      int64     `json:"size"`
+}
+
 var subscriptionMutex sync.Mutex
 
 var subscriptionUUIDRegex = regexp.MustCompile(`(?i)^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
 var subscriptionHostnameRegex = regexp.MustCompile(`(?i)^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)*[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$`)
+var subscriptionBackupNameRegex = regexp.MustCompile(`^\d{8}_\d{4}(?:\d{2})?(?:_\d+)?$`)
 
 func errSubscriptionValidation(message string) apperr.Err {
 	return apperr.NewValidationErr("Subscription_Invalid", message)
@@ -85,6 +95,121 @@ func SetSubscriptionSettings(settings *SubscriptionSettings) apperr.Err {
 	}
 
 	return saveSubscriptionSettings(settings)
+}
+
+func ListBackups() ([]BackupInfo, apperr.Err) {
+	subscriptionMutex.Lock()
+	defer subscriptionMutex.Unlock()
+
+	directory, err := subscriptionBackupDirectory()
+	if err != nil {
+		return nil, err
+	}
+	entries, readErr := os.ReadDir(directory)
+	if errors.Is(readErr, os.ErrNotExist) {
+		return []BackupInfo{}, nil
+	}
+	if readErr != nil {
+		return nil, errSubscriptionRead(readErr)
+	}
+
+	backups := make([]BackupInfo, 0, len(entries))
+	for _, entry := range entries {
+		if entry.IsDir() || !subscriptionBackupNameRegex.MatchString(entry.Name()) {
+			continue
+		}
+		info, infoErr := entry.Info()
+		if infoErr != nil {
+			return nil, errSubscriptionRead(infoErr)
+		}
+		backups = append(backups, BackupInfo{
+			Name:      entry.Name(),
+			CreatedAt: info.ModTime(),
+			Size:      info.Size(),
+		})
+	}
+	sort.Slice(backups, func(i, j int) bool {
+		if backups[i].CreatedAt.Equal(backups[j].CreatedAt) {
+			return backups[i].Name > backups[j].Name
+		}
+		return backups[i].CreatedAt.After(backups[j].CreatedAt)
+	})
+
+	return backups, nil
+}
+
+func RestoreBackup(name string) apperr.Err {
+	subscriptionMutex.Lock()
+	defer subscriptionMutex.Unlock()
+
+	backupPath, err := resolveBackupPath(name)
+	if err != nil {
+		return err
+	}
+	contents, readErr := os.ReadFile(backupPath)
+	if errors.Is(readErr, os.ErrNotExist) {
+		return apperr.NewNotFoundErr("Backup_NotFound", fmt.Sprintf("backup '%s' was not found", name))
+	}
+	if readErr != nil {
+		return errSubscriptionRead(readErr)
+	}
+
+	var conf *Conf
+	if unmarshalErr := json.Unmarshal(contents, &conf); unmarshalErr != nil || conf == nil {
+		return errSubscriptionValidation(fmt.Sprintf("backup '%s' does not contain a valid configuration", name))
+	}
+	saveMutex.Lock()
+	defer saveMutex.Unlock()
+	if err := backupConfig(); err != nil {
+		return err
+	}
+
+	configPath, err := getConfPath()
+	if err != nil {
+		return err
+	}
+	if writeErr := writeAtomicFile(configPath, contents); writeErr != nil {
+		return errSubscriptionWrite(writeErr)
+	}
+
+	return nil
+}
+
+func RemoveBackupsOlderThan(cutoff time.Time) (int, apperr.Err) {
+	subscriptionMutex.Lock()
+	defer subscriptionMutex.Unlock()
+
+	directory, err := subscriptionBackupDirectory()
+	if err != nil {
+		return 0, err
+	}
+	entries, readErr := os.ReadDir(directory)
+	if errors.Is(readErr, os.ErrNotExist) {
+		return 0, nil
+	}
+	if readErr != nil {
+		return 0, errSubscriptionRead(readErr)
+	}
+
+	removed := 0
+	for _, entry := range entries {
+		if entry.IsDir() || !subscriptionBackupNameRegex.MatchString(entry.Name()) {
+			continue
+		}
+		info, infoErr := entry.Info()
+		if infoErr != nil {
+			return removed, errSubscriptionRead(infoErr)
+		}
+		if !info.ModTime().Before(cutoff) {
+			continue
+		}
+		if removeErr := os.Remove(filepath.Join(directory, entry.Name())); removeErr != nil {
+			return removed, errSubscriptionWrite(removeErr)
+		}
+		removed++
+	}
+
+	return removed, nil
 }
 
 func UpdateSubscription(request *SubscriptionUpdate) (*SubscriptionUpdateResult, apperr.Err) {
@@ -315,7 +440,6 @@ func loadSubscriptionSettings() (*SubscriptionSettings, apperr.Err) {
 	if err := json.Unmarshal(contents, settings); err != nil {
 		return nil, errSubscriptionRead(err)
 	}
-
 	return settings, nil
 }
 
@@ -346,11 +470,57 @@ func backupConfig() apperr.Err {
 	if readErr != nil {
 		return errSubscriptionRead(readErr)
 	}
-	if writeErr := writeAtomicFile(path+".subscription.bak", contents); writeErr != nil {
+	return storeSubscriptionBackup(contents, time.Now())
+}
+
+func storeSubscriptionBackup(contents []byte, timestamp time.Time) apperr.Err {
+	backupDirectory, err := subscriptionBackupDirectory()
+	if err != nil {
+		return err
+	}
+	if mkdirErr := os.MkdirAll(backupDirectory, 0o700); mkdirErr != nil {
+		return errSubscriptionWrite(mkdirErr)
+	}
+	backupName := timestamp.Format("20060102_150405")
+	backupPath := filepath.Join(backupDirectory, backupName)
+	for suffix := 2; ; suffix++ {
+		_, statErr := os.Stat(backupPath)
+		if errors.Is(statErr, os.ErrNotExist) {
+			break
+		}
+		if statErr != nil {
+			return errSubscriptionRead(statErr)
+		}
+		backupName = fmt.Sprintf("%s_%d", timestamp.Format("20060102_150405"), suffix)
+		backupPath = filepath.Join(backupDirectory, backupName)
+	}
+	if writeErr := writeAtomicFile(backupPath, contents); writeErr != nil {
 		return errSubscriptionWrite(writeErr)
 	}
 
 	return nil
+}
+
+func subscriptionBackupDirectory() (string, apperr.Err) {
+	path, err := getConfPath()
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(filepath.Dir(path), "backups"), nil
+}
+
+func resolveBackupPath(name string) (string, apperr.Err) {
+	name = strings.TrimSpace(name)
+	if !subscriptionBackupNameRegex.MatchString(name) || filepath.Base(name) != name {
+		return "", apperr.NewValidationErr("Backup_InvalidName", "backup name is invalid")
+	}
+	directory, err := subscriptionBackupDirectory()
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(directory, name), nil
 }
 
 func subscriptionSettingsPath() (string, apperr.Err) {
@@ -359,7 +529,10 @@ func subscriptionSettingsPath() (string, apperr.Err) {
 		return "", err
 	}
 
-	return path + ".subscription.json", nil
+	name := filepath.Base(path)
+	extension := filepath.Ext(name)
+	name = strings.TrimSuffix(name, extension)
+	return filepath.Join(filepath.Dir(path), name+".subscription.state"), nil
 }
 
 func writeAtomicFile(path string, contents []byte) error {
