@@ -112,7 +112,7 @@ type transport struct {
 }
 
 type tls struct {
-	ALPN       []string `json:"alpn"`
+	ALPN       []string `json:"alpn,omitempty"`
 	Enabled    bool     `json:"enabled"`
 	Reality    *reality `json:"reality,omitempty"`
 	ServerName string   `json:"server_name"`

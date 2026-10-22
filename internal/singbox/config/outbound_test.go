@@ -1,0 +1,84 @@
+package config
+
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"github.com/traf72/singbox-api/internal/apperr"
+)
+
+func testVLESSOutboundOptions() *VLESSOutboundOptions {
+	return &VLESSOutboundOptions{
+		Tag:         "frankfurt-vless",
+		Server:      "203.0.113.10",
+		ServerPort:  443,
+		UUID:        "123e4567-e89b-12d3-a456-426614174000",
+		Flow:        "xtls-rprx-vision",
+		ServerName:  "example.com",
+		Fingerprint: "firefox",
+		PublicKey:   "public-key",
+		ShortID:     "0123456789abcdef",
+	}
+}
+
+func TestAddVLESSOutbound(t *testing.T) {
+	conf := &Conf{Outbounds: []*outbound{{Type: "direct", Tag: "direct"}}}
+
+	err := addVLESSOutbound(testVLESSOutboundOptions(), conf)
+
+	require.Nil(t, err)
+	require.Len(t, conf.Outbounds, 2)
+	assert.Equal(t, &outbound{
+		Type:       "vless",
+		Tag:        "frankfurt-vless",
+		Server:     "203.0.113.10",
+		ServerPort: 443,
+		UUID:       "123e4567-e89b-12d3-a456-426614174000",
+		Flow:       "xtls-rprx-vision",
+		TLS: &tls{
+			Enabled:    true,
+			ServerName: "example.com",
+			UTLS: &utls{
+				Enabled:     true,
+				Fingerprint: "firefox",
+			},
+			Reality: &reality{
+				Enabled:   true,
+				PublicKey: "public-key",
+				ShortID:   "0123456789abcdef",
+			},
+		},
+	}, conf.Outbounds[1])
+}
+
+func TestAddVLESSOutboundRejectsDuplicateTag(t *testing.T) {
+	conf := &Conf{Outbounds: []*outbound{{Type: "direct", Tag: "frankfurt-vless"}}}
+
+	err := addVLESSOutbound(testVLESSOutboundOptions(), conf)
+
+	assert.Equal(t, apperr.Conflict, err.Kind())
+	assert.Equal(t, "outbound tag 'frankfurt-vless' already exists", err.Msg())
+	assert.Len(t, conf.Outbounds, 1)
+}
+
+func TestRemoveOutbound(t *testing.T) {
+	conf := &Conf{Outbounds: []*outbound{
+		{Type: "direct", Tag: "direct"},
+		{Type: "vless", Tag: "frankfurt-vless"},
+	}}
+
+	err := removeOutbound("frankfurt-vless", conf)
+
+	require.Nil(t, err)
+	assert.Equal(t, []*outbound{{Type: "direct", Tag: "direct"}}, conf.Outbounds)
+}
+
+func TestRemoveOutboundReturnsNotFound(t *testing.T) {
+	conf := &Conf{Outbounds: []*outbound{{Type: "direct", Tag: "direct"}}}
+
+	err := removeOutbound("missing", conf)
+
+	assert.Equal(t, apperr.NotFound, err.Kind())
+	assert.Equal(t, "outbound tag 'missing' was not found", err.Msg())
+}

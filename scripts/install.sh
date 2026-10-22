@@ -1,117 +1,147 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
+umask 077
 
-# Exit immediately if a command exits with a non-zero status
-set -e
+OWNER="traf72"
+REPO="singbox-api"
+BRANCH="main"
+APP_NAME="singbox-api"
 
-# Variables
-PAT_FILE="$HOME/github-singbox-repos-pat"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-PAT=${GITHUB_TOKEN-}
-
-if [[ -z $PAT && -r $PAT_FILE ]]; then
-    read -r PAT < "$PAT_FILE"
-fi
-
-if [[ -z $PAT ]]; then
-    echo "Error: GitHub PAT not found.  Set GITHUB_TOKEN or create $PAT_FILE." >&2
-    exit 1
-fi
-
-SERVICE_USER="${1:-$(whoami)}"
-REPO_URL="https://${PAT}@github.com/traf72/singbox-api.git"
-BUILD_DIR="$HOME/singbox-api/src"
-INSTALL_DIR="$HOME/singbox-api/bin"
-SERVICE_NAME="singbox-api"
-EXECUTABLE_NAME="singbox-api"
-SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
-
-# Functions
-function log {
-    echo "[$(date +"%Y-%m-%d %H:%M:%S")] $*"
+usage() {
+  echo "Usage:" >&2
+  echo "  $0 -i <service-user> [additional installer args...]   install / upgrade" >&2
+  echo "  $0 -u                                             uninstall" >&2
+  exit 2
 }
 
-# Step 1: Check if systemd service exists
-if systemctl list-units --full --all | grep -Fq "${SERVICE_NAME}.service"; then
-    log "Service already exists. Proceeding with update..."
+[[ $# -ge 1 ]] || usage
+action="$1"
+shift
 
-    # Stop the service if running
-    if systemctl is-active --quiet "$SERVICE_NAME"; then
-        log "Stopping the current service..."
-        sudo systemctl stop "$SERVICE_NAME"
-    fi
+case "$action" in
+  -i)
+    [[ $# -ge 1 ]] || usage
+    SERVICE_USER="$1"
+    shift
+    SCRIPT_PATH="scripts/install.sh"
+    ;;
+  -u)
+    [[ $# -eq 0 ]] || usage
+    SCRIPT_PATH="scripts/uninstall.sh"
+    ;;
+  *) usage ;;
+esac
 
-    # Update the code
-    if [ -d "$BUILD_DIR" ]; then
-        log "Pulling the latest code..."
-        cd "$BUILD_DIR"
-        git reset --hard HEAD
-        git clean -fd
-        git pull
-    else
-        log "Cloning the repository..."
-        git clone "$REPO_URL" "$BUILD_DIR"
-        cd "$BUILD_DIR"
-    fi
+if [[ "$EUID" -ne 0 ]]; then
+  echo "Error: run this wrapper with sudo (or as root)." >&2
+  exit 1
+fi
 
-    # Build the new version
-    log "Building the new version..."
-    go build -o "$EXECUTABLE_NAME" ./cmd/api
+# Make Go visible even when launched via sudo.
+export PATH="/usr/local/go/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:${PATH:-}"
 
-    # Replace the existing binary
-    log "Replacing the existing binary..."
-    mv "$EXECUTABLE_NAME" "$INSTALL_DIR"
+# Token priority:
+# 1. GITHUB_TOKEN explicitly passed through sudo
+# 2. Original sudo user's token (NOT root's token)
+# 3. Current HOME's token as a fallback
+PAT="${GITHUB_TOKEN:-}"
+PAT_SOURCE="GITHUB_TOKEN"
 
-    # Restart the service
-    log "Restarting the service..."
-    sudo systemctl start "$SERVICE_NAME"
+if [[ -z "$PAT" && -n "${SUDO_USER:-}" && "$SUDO_USER" != "root" ]]; then
+  SUDO_HOME="$(getent passwd "$SUDO_USER" 2>/dev/null | cut -d: -f6 || true)"
+  if [[ -n "$SUDO_HOME" && -r "$SUDO_HOME/github-singbox-repos-pat" ]]; then
+    IFS= read -r PAT < "$SUDO_HOME/github-singbox-repos-pat" || true
+    PAT_SOURCE="$SUDO_HOME/github-singbox-repos-pat"
+  fi
+fi
 
-    log "Update complete! The web server is running the latest version."
+if [[ -z "$PAT" && -r "${HOME:-}/github-singbox-repos-pat" ]]; then
+  IFS= read -r PAT < "${HOME}/github-singbox-repos-pat" || true
+  PAT_SOURCE="${HOME}/github-singbox-repos-pat"
+fi
+
+PAT="${PAT%$'\r'}"  # Allow a PAT file saved with CRLF endings.
+if [[ -z "$PAT" ]]; then
+  echo "Error: GitHub PAT missing. Set GITHUB_TOKEN or create ~/github-singbox-repos-pat." >&2
+  exit 1
+fi
+
+echo "[run-installation] Using GitHub token from: ${PAT_SOURCE}"
+
+# Validate local arguments before downloading anything.
+if [[ "$action" == "-i" ]]; then
+  PASSWD_ENTRY="$(getent passwd "$SERVICE_USER" || true)"
+  if [[ -z "$PASSWD_ENTRY" ]]; then
+    echo "Error: service user '$SERVICE_USER' does not exist." >&2
+    exit 1
+  fi
+  SERVICE_HOME="$(printf '%s\n' "$PASSWD_ENTRY" | cut -d: -f6)"
+  if [[ -z "$SERVICE_HOME" ]]; then
+    echo "Error: cannot determine home directory for '$SERVICE_USER'." >&2
+    exit 1
+  fi
+  if [[ ! -f "$SCRIPT_DIR/env_stub" ]]; then
+    echo "Error: missing $SCRIPT_DIR/env_stub" >&2
+    exit 1
+  fi
+fi
+
+# GitHub REST Contents API supports authenticated raw downloads for private repos.
+URL="https://api.github.com/repos/${OWNER}/${REPO}/contents/${SCRIPT_PATH}?ref=${BRANCH}"
+TMP_SCRIPT="$(mktemp)"
+trap 'rm -f "$TMP_SCRIPT"' EXIT
+
+echo "[run-installation] Fetching ${SCRIPT_PATH} from ${OWNER}/${REPO}@${BRANCH} ..."
+if ! HTTP_STATUS="$(curl -4 -sS -L \
+    --connect-timeout 15 --max-time 120 --retry 2 \
+    -o "$TMP_SCRIPT" -w '%{http_code}' \
+    -H "Authorization: Bearer $PAT" \
+    -H 'Accept: application/vnd.github.raw+json' \
+    "$URL")"; then
+  echo "Error: could not download ${SCRIPT_PATH} (network/TLS failure)." >&2
+  exit 1
+fi
+
+if [[ "$HTTP_STATUS" != "200" ]]; then
+  echo "Error: GitHub returned HTTP ${HTTP_STATUS} for ${OWNER}/${REPO}/${SCRIPT_PATH} (branch ${BRANCH})." >&2
+  case "$HTTP_STATUS" in
+    401) echo "The PAT was rejected by GitHub." >&2 ;;
+    403) echo "Check GitHub permissions, rate limiting, or organization access restrictions." >&2 ;;
+    404) echo "Check repository access (fine-grained PAT: Contents/Read), owner, branch and file path." >&2 ;;
+  esac
+  exit 1
+fi
+
+if [[ ! -s "$TMP_SCRIPT" ]] || ! bash -n "$TMP_SCRIPT"; then
+  echo "Error: downloaded file is empty or is not a valid Bash script." >&2
+  exit 1
+fi
+
+# Prepare .env only after the download succeeds; never overwrite on upgrade.
+if [[ "$action" == "-i" ]]; then
+  INSTALL_DIR="${SERVICE_HOME}/${APP_NAME}"
+  TARGET_ENV="${INSTALL_DIR}/bin/.env"
+  SERVICE_GROUP="$(id -gn "$SERVICE_USER")"
+
+  if [[ ! -d "$INSTALL_DIR" ]]; then
+    install -d -m 750 -o "$SERVICE_USER" -g "$SERVICE_GROUP" "$INSTALL_DIR"
+  fi
+  if [[ ! -d "$INSTALL_DIR/bin" ]]; then
+    install -d -m 750 -o "$SERVICE_USER" -g "$SERVICE_GROUP" "$INSTALL_DIR/bin"
+  fi
+
+  if [[ -e "$TARGET_ENV" || -L "$TARGET_ENV" ]]; then
+    echo "[run-installation] Preserving existing $TARGET_ENV"
+  else
+    echo "[run-installation] Creating $TARGET_ENV"
+    install -m 600 -o "$SERVICE_USER" -g "$SERVICE_GROUP" \
+      "$SCRIPT_DIR/env_stub" "$TARGET_ENV"
+  fi
+
+  # The child script can reuse the same PAT for git clone or API requests.
+  GITHUB_TOKEN="$PAT" bash "$TMP_SCRIPT" "$SERVICE_USER" "$@"
 else
-    log "No existing service found. Proceeding with fresh installation..."
-
-    # Install prerequisites
-    log "Installing prerequisites..."
-    sudo apt-get update
-    sudo apt-get install -y git
-
-    # Clone the repository
-    log "Cloning the repository..."
-    rm -rf "$BUILD_DIR"
-    git clone "$REPO_URL" "$BUILD_DIR"
-
-    # Build the binary
-    log "Building the project..."
-    cd "$BUILD_DIR"
-    go build -o "$EXECUTABLE_NAME" ./cmd/api
-
-    # Install the binary
-    log "Installing the binary..."
-    mkdir -p "$INSTALL_DIR"
-    mv "$EXECUTABLE_NAME" "$INSTALL_DIR"
-
-    # Create the systemd service file
-    log "Creating the systemd service file..."
-    sudo bash -c "cat > $SERVICE_FILE" <<EOL
-[Unit]
-Description=Singbox API Service
-After=network.target
-
-[Service]
-ExecStart=${INSTALL_DIR}/${EXECUTABLE_NAME}
-WorkingDirectory=${INSTALL_DIR}
-Restart=always
-User=${SERVICE_USER}
-Group=${SERVICE_USER}
-
-[Install]
-WantedBy=multi-user.target
-EOL
-
-    # Reload systemd and start the service
-    log "Reloading systemd and enabling the service..."
-    sudo systemctl daemon-reload
-    sudo systemctl enable "$SERVICE_NAME"
-    sudo systemctl start "$SERVICE_NAME"
-
-    log "Installation complete! The web server is now running as a systemd service."
+  GITHUB_TOKEN="$PAT" bash "$TMP_SCRIPT"
 fi

@@ -30,6 +30,9 @@ func main() {
 	router.Handle("PUT /ip-rules", handlers.AddIPRuleHandler())
 	router.Handle("DELETE /ip-rules", handlers.RemoveIPRuleHandler())
 
+	router.Handle("POST /outbounds", handlers.AddOutboundHandler())
+	router.Handle("DELETE /outbounds/{tag}", handlers.RemoveOutboundHandler())
+
 	router.Handle("GET /config", handlers.GetConfigHandler())
 
 	router.Handle("POST /singbox/start", handlers.SingboxStartHandler())
