@@ -23,12 +23,22 @@ func testVLESSOutboundOptions() *VLESSOutboundOptions {
 }
 
 func TestAddVLESSOutbound(t *testing.T) {
-	conf := &Conf{Outbounds: []*outbound{{Type: "direct", Tag: "direct"}}}
+	selector := &outbound{
+		Type:      "selector",
+		Tag:       "proxy",
+		Outbounds: []string{"existing-vless"},
+		Default:   "existing-vless",
+	}
+	conf := &Conf{Outbounds: []*outbound{
+		selector,
+		{Type: "direct", Tag: "direct"},
+	}}
 
 	err := addVLESSOutbound(testVLESSOutboundOptions(), conf)
 
 	require.Nil(t, err)
-	require.Len(t, conf.Outbounds, 2)
+	require.Len(t, conf.Outbounds, 3)
+	assert.Equal(t, []string{"existing-vless", "frankfurt-vless"}, selector.Outbounds)
 	assert.Equal(t, &outbound{
 		Type:       "vless",
 		Tag:        "frankfurt-vless",
@@ -49,7 +59,7 @@ func TestAddVLESSOutbound(t *testing.T) {
 				ShortID:   "0123456789abcdef",
 			},
 		},
-	}, conf.Outbounds[1])
+	}, conf.Outbounds[2])
 }
 
 func TestAddVLESSOutboundRejectsDuplicateTag(t *testing.T) {
@@ -62,8 +72,25 @@ func TestAddVLESSOutboundRejectsDuplicateTag(t *testing.T) {
 	assert.Len(t, conf.Outbounds, 1)
 }
 
+func TestAddVLESSOutboundRequiresProxySelector(t *testing.T) {
+	conf := &Conf{Outbounds: []*outbound{{Type: "direct", Tag: "direct"}}}
+
+	err := addVLESSOutbound(testVLESSOutboundOptions(), conf)
+
+	assert.Equal(t, apperr.NotFound, err.Kind())
+	assert.Equal(t, "selector outbound tag 'proxy' was not found", err.Msg())
+	assert.Len(t, conf.Outbounds, 1)
+}
+
 func TestRemoveOutbound(t *testing.T) {
+	selector := &outbound{
+		Type:      "selector",
+		Tag:       "proxy",
+		Outbounds: []string{"frankfurt-vless", "direct"},
+		Default:   "frankfurt-vless",
+	}
 	conf := &Conf{Outbounds: []*outbound{
+		selector,
 		{Type: "direct", Tag: "direct"},
 		{Type: "vless", Tag: "frankfurt-vless"},
 	}}
@@ -71,7 +98,9 @@ func TestRemoveOutbound(t *testing.T) {
 	err := removeOutbound("frankfurt-vless", conf)
 
 	require.Nil(t, err)
-	assert.Equal(t, []*outbound{{Type: "direct", Tag: "direct"}}, conf.Outbounds)
+	assert.Equal(t, []*outbound{selector, {Type: "direct", Tag: "direct"}}, conf.Outbounds)
+	assert.Equal(t, []string{"direct"}, selector.Outbounds)
+	assert.Equal(t, "direct", selector.Default)
 }
 
 func TestRemoveOutboundReturnsNotFound(t *testing.T) {

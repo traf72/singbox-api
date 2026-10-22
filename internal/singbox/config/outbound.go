@@ -7,6 +7,8 @@ import (
 	"github.com/traf72/singbox-api/internal/apperr"
 )
 
+const proxySelectorTag = "proxy"
+
 type VLESSOutboundOptions struct {
 	Tag         string
 	Server      string
@@ -27,6 +29,10 @@ func errOutboundNotFound(tag string) apperr.Err {
 	return apperr.NewNotFoundErr("Outbound_NotFound", fmt.Sprintf("outbound tag '%s' was not found", tag))
 }
 
+func errProxySelectorNotFound() apperr.Err {
+	return apperr.NewNotFoundErr("Outbound_ProxySelectorNotFound", fmt.Sprintf("selector outbound tag '%s' was not found", proxySelectorTag))
+}
+
 func AddVLESSOutbound(options *VLESSOutboundOptions) apperr.Err {
 	c, err := Load()
 	if err != nil {
@@ -45,6 +51,11 @@ func addVLESSOutbound(options *VLESSOutboundOptions, conf *Conf) apperr.Err {
 		return item != nil && item.Tag == options.Tag
 	}) {
 		return errOutboundTagExists(options.Tag)
+	}
+
+	selector := findProxySelector(conf)
+	if selector == nil {
+		return errProxySelectorNotFound()
 	}
 
 	conf.Outbounds = append(conf.Outbounds, &outbound{
@@ -68,6 +79,9 @@ func addVLESSOutbound(options *VLESSOutboundOptions, conf *Conf) apperr.Err {
 			},
 		},
 	})
+	if !slices.Contains(selector.Outbounds, options.Tag) {
+		selector.Outbounds = append(selector.Outbounds, options.Tag)
+	}
 
 	return nil
 }
@@ -94,5 +108,30 @@ func removeOutbound(tag string, conf *Conf) apperr.Err {
 	}
 
 	conf.Outbounds = slices.Delete(conf.Outbounds, index, index+1)
+
+	selector := findProxySelector(conf)
+	if selector != nil {
+		selector.Outbounds = slices.DeleteFunc(selector.Outbounds, func(item string) bool {
+			return item == tag
+		})
+		if selector.Default == tag {
+			selector.Default = ""
+			if len(selector.Outbounds) > 0 {
+				selector.Default = selector.Outbounds[0]
+			}
+		}
+	}
+
 	return nil
+}
+
+func findProxySelector(conf *Conf) *outbound {
+	index := slices.IndexFunc(conf.Outbounds, func(item *outbound) bool {
+		return item != nil && item.Type == "selector" && item.Tag == proxySelectorTag
+	})
+	if index == -1 {
+		return nil
+	}
+
+	return conf.Outbounds[index]
 }

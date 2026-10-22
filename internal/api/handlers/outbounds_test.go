@@ -20,7 +20,20 @@ const outboundRequestBody = `{
 
 func TestOutboundHandlers(t *testing.T) {
 	configPath := filepath.Join(t.TempDir(), "config.json")
-	require.NoError(t, os.WriteFile(configPath, []byte(`{"outbounds":[]}`), 0o600))
+	require.NoError(t, os.WriteFile(configPath, []byte(`{
+		"outbounds": [
+			{
+				"type": "selector",
+				"tag": "proxy",
+				"outbounds": ["existing-vless"],
+				"default": "existing-vless"
+			},
+			{
+				"type": "vless",
+				"tag": "existing-vless"
+			}
+		]
+	}`), 0o600))
 	t.Setenv("CONFIG_PATH", configPath)
 
 	router := http.NewServeMux()
@@ -40,7 +53,14 @@ func TestOutboundHandlers(t *testing.T) {
 		Outbounds []json.RawMessage `json:"outbounds"`
 	}
 	require.NoError(t, json.Unmarshal(contents, &saved))
-	require.Len(t, saved.Outbounds, 1)
+	require.Len(t, saved.Outbounds, 3)
+	var selector struct {
+		Outbounds []string `json:"outbounds"`
+		Default   string   `json:"default"`
+	}
+	require.NoError(t, json.Unmarshal(saved.Outbounds[0], &selector))
+	assert.Equal(t, []string{"existing-vless", "frankfurt-vless"}, selector.Outbounds)
+	assert.Equal(t, "existing-vless", selector.Default)
 	assert.JSONEq(t, `{
 		"type": "vless",
 		"tag": "frankfurt-vless",
@@ -61,7 +81,7 @@ func TestOutboundHandlers(t *testing.T) {
 				"short_id": "0123456789abcdef"
 			}
 		}
-	}`, string(saved.Outbounds[0]))
+	}`, string(saved.Outbounds[2]))
 
 	duplicateResponse := serveOutboundRequest(router, http.MethodPost, "/outbounds?norestart=true", outboundRequestBody)
 	assert.Equal(t, http.StatusConflict, duplicateResponse.Code)
@@ -69,6 +89,13 @@ func TestOutboundHandlers(t *testing.T) {
 
 	deleteResponse := serveOutboundRequest(router, http.MethodDelete, "/outbounds/frankfurt-vless?norestart=true", "")
 	require.Equal(t, http.StatusNoContent, deleteResponse.Code, deleteResponse.Body.String())
+
+	contents, err = os.ReadFile(configPath)
+	require.NoError(t, err)
+	require.NoError(t, json.Unmarshal(contents, &saved))
+	require.Len(t, saved.Outbounds, 2)
+	require.NoError(t, json.Unmarshal(saved.Outbounds[0], &selector))
+	assert.Equal(t, []string{"existing-vless"}, selector.Outbounds)
 
 	missingResponse := serveOutboundRequest(router, http.MethodDelete, "/outbounds/frankfurt-vless?norestart=true", "")
 	assert.Equal(t, http.StatusNotFound, missingResponse.Code)
