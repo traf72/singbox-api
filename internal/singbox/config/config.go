@@ -16,6 +16,7 @@ type Conf struct {
 	Inbounds  []*inbound  `json:"inbounds"`
 	Outbounds []*outbound `json:"outbounds"`
 	Route     route       `json:"route"`
+	Services  []*service  `json:"services,omitempty"`
 }
 
 type logging struct {
@@ -26,13 +27,12 @@ type logging struct {
 }
 
 type dns struct {
-	IndependentCache bool        `json:"independent_cache,omitempty"`
-	CacheCapacity    int         `json:"cache_capacity,omitempty"`
-	ReverseMapping   bool        `json:"reverse_mapping,omitempty"`
-	Strategy         string      `json:"strategy,omitempty"`
-	Final            string      `json:"final"`
-	Rules            []DNSRule   `json:"rules"`
-	Servers          []dnsServer `json:"servers"`
+	CacheCapacity  int         `json:"cache_capacity,omitempty"`
+	ReverseMapping bool        `json:"reverse_mapping,omitempty"`
+	Strategy       string      `json:"strategy,omitempty"`
+	Final          string      `json:"final"`
+	Rules          []DNSRule   `json:"rules"`
+	Servers        []dnsServer `json:"servers"`
 }
 
 type Rule struct {
@@ -61,33 +61,49 @@ type dnsServer struct {
 }
 
 type inbound struct {
-	Listen                 string   `json:"listen,omitempty"`
-	ListenPort             int      `json:"listen_port,omitempty"`
-	AutoRoute              bool     `json:"auto_route,omitempty"`
-	AutoRedirect           bool     `json:"auto_redirect,omitempty"`
-	EndpointIndependentNAT *bool    `json:"endpoint_independent_nat,omitempty"`
-	Address                []string `json:"address,omitempty"`
-	InterfaceName          string   `json:"interface_name,omitempty"`
-	MTU                    int      `json:"mtu,omitempty"`
-	Stack                  string   `json:"stack,omitempty"`
-	StrictRoute            *bool    `json:"strict_route,omitempty"`
-	Tag                    string   `json:"tag"`
-	Type                   string   `json:"type"`
+	Listen        string   `json:"listen,omitempty"`
+	ListenPort    int      `json:"listen_port,omitempty"`
+	AutoRoute     bool     `json:"auto_route,omitempty"`
+	AutoRedirect  bool     `json:"auto_redirect,omitempty"`
+	Address       []string `json:"address,omitempty"`
+	InterfaceName string   `json:"interface_name,omitempty"`
+	MTU           int      `json:"mtu,omitempty"`
+	Stack         string   `json:"stack,omitempty"`
+	StrictRoute   *bool    `json:"strict_route,omitempty"`
+	DNSMode       string   `json:"dns_mode,omitempty"`
+	Tag           string   `json:"tag"`
+	Type          string   `json:"type"`
+}
+
+type service struct {
+	Type       string     `json:"type"`
+	Tag        string     `json:"tag"`
+	Listen     string     `json:"listen,omitempty"`
+	ListenPort int        `json:"listen_port,omitempty"`
+	Secret     string     `json:"secret,omitempty"`
+	Dashboard  *dashboard `json:"dashboard,omitempty"`
+}
+
+type dashboard struct {
+	Enabled bool `json:"enabled"`
 }
 
 type outbound struct {
-	Method         string          `json:"method,omitempty"`
-	Password       string          `json:"password,omitempty"`
-	Flow           string          `json:"flow,omitempty"`
-	PacketEncoding string          `json:"packet_encoding,omitempty"`
-	Server         string          `json:"server,omitempty"`
-	ServerPort     int             `json:"server_port,omitempty"`
-	Tag            string          `json:"tag"`
-	TLS            *tls            `json:"tls,omitempty"`
-	Type           string          `json:"type"`
-	UUID           string          `json:"uuid,omitempty"`
-	DomainResolver *domainResolver `json:"domain_resolver,omitempty"`
-	Transport      *transport      `json:"transport,omitempty"`
+	Method                    string          `json:"method,omitempty"`
+	Password                  string          `json:"password,omitempty"`
+	Flow                      string          `json:"flow,omitempty"`
+	PacketEncoding            string          `json:"packet_encoding,omitempty"`
+	Server                    string          `json:"server,omitempty"`
+	ServerPort                int             `json:"server_port,omitempty"`
+	Tag                       string          `json:"tag"`
+	TLS                       *tls            `json:"tls,omitempty"`
+	Type                      string          `json:"type"`
+	UUID                      string          `json:"uuid,omitempty"`
+	DomainResolver            *domainResolver `json:"domain_resolver,omitempty"`
+	Transport                 *transport      `json:"transport,omitempty"`
+	Outbounds                 []string        `json:"outbounds,omitempty"`
+	Default                   string          `json:"default,omitempty"`
+	InterruptExistConnections bool            `json:"interrupt_exist_connections,omitempty"`
 }
 
 type transport struct {
