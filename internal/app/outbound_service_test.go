@@ -95,3 +95,9 @@ func TestOutboundRequestToVLESSOptionsValidation(t *testing.T) {
 		})
 	}
 }
+
+func TestSetSelectorDefaultRejectsEmptyTag(t *testing.T) {
+	err := SetSelectorDefault(&SelectorDefaultRequest{Tag: "  "}, false)
+
+	assert.Equal(t, errOutboundEmptyTag, err)
+}

@@ -111,3 +111,34 @@ func TestRemoveOutboundReturnsNotFound(t *testing.T) {
 	assert.Equal(t, apperr.NotFound, err.Kind())
 	assert.Equal(t, "outbound tag 'missing' was not found", err.Msg())
 }
+
+func TestSetProxySelectorDefault(t *testing.T) {
+	selector := &outbound{
+		Type:      "selector",
+		Tag:       "proxy",
+		Outbounds: []string{"first", "second"},
+		Default:   "first",
+	}
+	conf := &Conf{Outbounds: []*outbound{selector}}
+
+	err := setProxySelectorDefault("second", conf)
+
+	require.Nil(t, err)
+	assert.Equal(t, "second", selector.Default)
+}
+
+func TestSetProxySelectorDefaultRejectsNonMember(t *testing.T) {
+	selector := &outbound{
+		Type:      "selector",
+		Tag:       "proxy",
+		Outbounds: []string{"first"},
+		Default:   "first",
+	}
+	conf := &Conf{Outbounds: []*outbound{selector}}
+
+	err := setProxySelectorDefault("missing", conf)
+
+	assert.Equal(t, apperr.NotFound, err.Kind())
+	assert.Equal(t, "outbound tag 'missing' is not a member of selector 'proxy'", err.Msg())
+	assert.Equal(t, "first", selector.Default)
+}

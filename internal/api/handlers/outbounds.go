@@ -46,10 +46,35 @@ func removeOutbound(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+func setSelectorDefault(w http.ResponseWriter, r *http.Request) {
+	request := new(app.SelectorDefaultRequest)
+	if err := utils.FromJSON(r.Body, request); err != nil {
+		api.SendBadRequest(w, err.Error())
+		return
+	}
+
+	noRestart, err := query.GetBool(r.URL.Query(), "norestart", false)
+	if err != nil {
+		api.SendBadRequest(w, err.Error())
+		return
+	}
+
+	if err := app.SetSelectorDefault(request, !noRestart); err != nil {
+		api.SendError(w, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func AddOutboundHandler() http.Handler {
 	return middleware.NewHandlerFunc(addOutbound).WithJsonRequest().Build()
 }
 
 func RemoveOutboundHandler() http.Handler {
 	return middleware.NewHandlerFunc(removeOutbound).Build()
+}
+
+func SetSelectorDefaultHandler() http.Handler {
+	return middleware.NewHandlerFunc(setSelectorDefault).WithJsonRequest().Build()
 }

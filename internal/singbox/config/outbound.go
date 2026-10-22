@@ -33,6 +33,10 @@ func errProxySelectorNotFound() apperr.Err {
 	return apperr.NewNotFoundErr("Outbound_ProxySelectorNotFound", fmt.Sprintf("selector outbound tag '%s' was not found", proxySelectorTag))
 }
 
+func errSelectorMemberNotFound(tag string) apperr.Err {
+	return apperr.NewNotFoundErr("Outbound_SelectorMemberNotFound", fmt.Sprintf("outbound tag '%s' is not a member of selector '%s'", tag, proxySelectorTag))
+}
+
 func AddVLESSOutbound(options *VLESSOutboundOptions) apperr.Err {
 	c, err := Load()
 	if err != nil {
@@ -97,6 +101,32 @@ func RemoveOutbound(tag string) apperr.Err {
 	}
 
 	return Save(c)
+}
+
+func SetProxySelectorDefault(tag string) apperr.Err {
+	c, err := Load()
+	if err != nil {
+		return err
+	}
+
+	if err := setProxySelectorDefault(tag, c.Conf); err != nil {
+		return err
+	}
+
+	return Save(c)
+}
+
+func setProxySelectorDefault(tag string, conf *Conf) apperr.Err {
+	selector := findProxySelector(conf)
+	if selector == nil {
+		return errProxySelectorNotFound()
+	}
+	if !slices.Contains(selector.Outbounds, tag) {
+		return errSelectorMemberNotFound(tag)
+	}
+
+	selector.Default = tag
+	return nil
 }
 
 func removeOutbound(tag string, conf *Conf) apperr.Err {

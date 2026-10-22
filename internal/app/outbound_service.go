@@ -27,6 +27,10 @@ type OutboundRequest struct {
 	URL string `json:"url"`
 }
 
+type SelectorDefaultRequest struct {
+	Tag string `json:"tag"`
+}
+
 var uuidRegex = regexp.MustCompile(`(?i)^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
 
 func (r *OutboundRequest) toVLESSOptions() (*config.VLESSOutboundOptions, apperr.Err) {
@@ -127,6 +131,23 @@ func RemoveOutbound(tag string, restart bool) apperr.Err {
 	}
 
 	if err := config.RemoveOutbound(tag); err != nil {
+		return err
+	}
+
+	if restart {
+		return singbox.Restart()
+	}
+
+	return nil
+}
+
+func SetSelectorDefault(request *SelectorDefaultRequest, restart bool) apperr.Err {
+	tag := strings.TrimSpace(request.Tag)
+	if tag == "" {
+		return errOutboundEmptyTag
+	}
+
+	if err := config.SetProxySelectorDefault(tag); err != nil {
 		return err
 	}
 

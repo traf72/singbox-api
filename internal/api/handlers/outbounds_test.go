@@ -39,12 +39,13 @@ func TestOutboundHandlers(t *testing.T) {
 	router := http.NewServeMux()
 	router.Handle("POST /outbounds", AddOutboundHandler())
 	router.Handle("DELETE /outbounds/{tag}", RemoveOutboundHandler())
+	router.Handle("PUT /outbounds/selector/default", SetSelectorDefaultHandler())
 
-	invalidResponse := serveOutboundRequest(router, http.MethodPost, "/outbounds?norestart=true", `{"tag":"broken","url":"https://example.com"}`)
+	invalidResponse := serveJSONRequest(router, http.MethodPost, "/outbounds?norestart=true", `{"tag":"broken","url":"https://example.com"}`)
 	assert.Equal(t, http.StatusBadRequest, invalidResponse.Code)
 	assert.Contains(t, invalidResponse.Body.String(), "scheme must be 'vless'")
 
-	createResponse := serveOutboundRequest(router, http.MethodPost, "/outbounds?norestart=true", outboundRequestBody)
+	createResponse := serveJSONRequest(router, http.MethodPost, "/outbounds?norestart=true", outboundRequestBody)
 	require.Equal(t, http.StatusCreated, createResponse.Code, createResponse.Body.String())
 
 	contents, err := os.ReadFile(configPath)
@@ -83,11 +84,19 @@ func TestOutboundHandlers(t *testing.T) {
 		}
 	}`, string(saved.Outbounds[2]))
 
-	duplicateResponse := serveOutboundRequest(router, http.MethodPost, "/outbounds?norestart=true", outboundRequestBody)
+	duplicateResponse := serveJSONRequest(router, http.MethodPost, "/outbounds?norestart=true", outboundRequestBody)
 	assert.Equal(t, http.StatusConflict, duplicateResponse.Code)
 	assert.Contains(t, duplicateResponse.Body.String(), "outbound tag 'frankfurt-vless' already exists")
 
-	deleteResponse := serveOutboundRequest(router, http.MethodDelete, "/outbounds/frankfurt-vless?norestart=true", "")
+	selectResponse := serveJSONRequest(router, http.MethodPut, "/outbounds/selector/default?norestart=true", `{"tag":"frankfurt-vless"}`)
+	require.Equal(t, http.StatusNoContent, selectResponse.Code, selectResponse.Body.String())
+	contents, err = os.ReadFile(configPath)
+	require.NoError(t, err)
+	require.NoError(t, json.Unmarshal(contents, &saved))
+	require.NoError(t, json.Unmarshal(saved.Outbounds[0], &selector))
+	assert.Equal(t, "frankfurt-vless", selector.Default)
+
+	deleteResponse := serveJSONRequest(router, http.MethodDelete, "/outbounds/frankfurt-vless?norestart=true", "")
 	require.Equal(t, http.StatusNoContent, deleteResponse.Code, deleteResponse.Body.String())
 
 	contents, err = os.ReadFile(configPath)
@@ -96,13 +105,14 @@ func TestOutboundHandlers(t *testing.T) {
 	require.Len(t, saved.Outbounds, 2)
 	require.NoError(t, json.Unmarshal(saved.Outbounds[0], &selector))
 	assert.Equal(t, []string{"existing-vless"}, selector.Outbounds)
+	assert.Equal(t, "existing-vless", selector.Default)
 
-	missingResponse := serveOutboundRequest(router, http.MethodDelete, "/outbounds/frankfurt-vless?norestart=true", "")
+	missingResponse := serveJSONRequest(router, http.MethodDelete, "/outbounds/frankfurt-vless?norestart=true", "")
 	assert.Equal(t, http.StatusNotFound, missingResponse.Code)
 	assert.Contains(t, missingResponse.Body.String(), "outbound tag 'frankfurt-vless' was not found")
 }
 
-func serveOutboundRequest(handler http.Handler, method, target, body string) *httptest.ResponseRecorder {
+func serveJSONRequest(handler http.Handler, method, target, body string) *httptest.ResponseRecorder {
 	request := httptest.NewRequest(method, target, bytes.NewBufferString(body))
 	if body != "" {
 		request.Header.Set("Content-Type", "application/json")

@@ -32,6 +32,8 @@ func main() {
 
 	router.Handle("POST /outbounds", handlers.AddOutboundHandler())
 	router.Handle("DELETE /outbounds/{tag}", handlers.RemoveOutboundHandler())
+	router.Handle("PUT /outbounds/selector/default", handlers.SetSelectorDefaultHandler())
+	router.Handle("PUT /route/mode", handlers.SetRouteModeHandler())
 
 	router.Handle("GET /config", handlers.GetConfigHandler())
 
