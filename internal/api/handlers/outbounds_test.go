@@ -47,7 +47,7 @@ func TestOutboundHandlers(t *testing.T) {
 
 	createResponse := serveJSONRequest(router, http.MethodPost, "/outbounds?norestart=true", outboundRequestBody)
 	require.Equal(t, http.StatusCreated, createResponse.Code, createResponse.Body.String())
-	settingsPath := filepath.Join(filepath.Dir(configPath), "config.subscription.state")
+	settingsPath := filepath.Join(filepath.Dir(configPath), "subscription.state")
 	settingsContents, err := os.ReadFile(settingsPath)
 	require.NoError(t, err)
 	var protection struct {

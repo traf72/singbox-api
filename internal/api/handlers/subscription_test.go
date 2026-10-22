@@ -58,7 +58,7 @@ func TestSubscriptionHandlers(t *testing.T) {
 		"fixed_outbounds": ["fixed-vless"],
 		"fallback_outbound": "fixed-vless"
 	}`, getSettingsResponse.Body.String())
-	assert.FileExists(t, filepath.Join(filepath.Dir(configPath), "config.subscription.state"))
+	assert.FileExists(t, filepath.Join(filepath.Dir(configPath), "subscription.state"))
 
 	updateResponse := serveJSONRequest(router, http.MethodPut, "/subscription?norestart=true", `{
 		"version": 1,

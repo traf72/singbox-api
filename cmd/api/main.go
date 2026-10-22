@@ -45,6 +45,7 @@ func main() {
 	router.Handle("POST /singbox/start", handlers.SingboxStartHandler())
 	router.Handle("POST /singbox/stop", handlers.SingboxStopHandler())
 	router.Handle("POST /singbox/restart", handlers.SingboxRestartHandler())
+	router.Handle("GET /singbox/status", handlers.SingboxStatusHandler())
 
 	router.Handle("GET /logs", handlers.LogDownloadHandler())
 	router.Handle("PUT /logs/enable", handlers.LogsEnableHandler())

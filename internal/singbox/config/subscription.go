@@ -529,10 +529,7 @@ func subscriptionSettingsPath() (string, apperr.Err) {
 		return "", err
 	}
 
-	name := filepath.Base(path)
-	extension := filepath.Ext(name)
-	name = strings.TrimSuffix(name, extension)
-	return filepath.Join(filepath.Dir(path), name+".subscription.state"), nil
+	return filepath.Join(filepath.Dir(path), "subscription.state"), nil
 }
 
 func writeAtomicFile(path string, contents []byte) error {

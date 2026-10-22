@@ -11,6 +11,7 @@ import (
 func startSingbox(w http.ResponseWriter, r *http.Request) {
 	if err := singbox.Start(); err != nil {
 		api.SendError(w, err)
+		return
 	}
 
 	w.WriteHeader(http.StatusNoContent)
@@ -19,6 +20,7 @@ func startSingbox(w http.ResponseWriter, r *http.Request) {
 func stopSingbox(w http.ResponseWriter, r *http.Request) {
 	if err := singbox.Stop(); err != nil {
 		api.SendError(w, err)
+		return
 	}
 
 	w.WriteHeader(http.StatusNoContent)
@@ -27,9 +29,20 @@ func stopSingbox(w http.ResponseWriter, r *http.Request) {
 func restartSingbox(w http.ResponseWriter, r *http.Request) {
 	if err := singbox.Restart(); err != nil {
 		api.SendError(w, err)
+		return
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func singboxStatus(w http.ResponseWriter, _ *http.Request) {
+	status, err := singbox.Status()
+	if err != nil {
+		api.SendError(w, err)
+		return
+	}
+
+	api.SendJson(w, status)
 }
 
 func SingboxStartHandler() http.Handler {
@@ -42,4 +55,8 @@ func SingboxStopHandler() http.Handler {
 
 func SingboxRestartHandler() http.Handler {
 	return middleware.NewHandlerFunc(restartSingbox).Build()
+}
+
+func SingboxStatusHandler() http.Handler {
+	return middleware.NewHandlerFunc(singboxStatus).Build()
 }

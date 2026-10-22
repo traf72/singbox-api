@@ -1,0 +1,228 @@
+# VS Code: install the REST Client extension (humao.rest-client), then click
+# "Send Request" above a request or press Ctrl+Alt+R / Cmd+Alt+R.
+# Edit the variables and example payloads before running mutating requests.
+
+@baseUrl = http://127.0.0.1:8080
+@contentType = application/json
+@newOutboundTag = example-vless
+@fixedOutboundTag = some-tag
+@backupName = 20261022_172500
+@deleteBackupsBefore = 2026-10-22T00:00:00Z
+
+### Health
+# @name health
+GET {{baseUrl}}/health
+
+### Get config
+# @name getConfig
+GET {{baseUrl}}/config
+Accept: application/json
+
+### Download config
+# @name downloadConfig
+GET {{baseUrl}}/config?download=true
+
+### Add DNS rule
+# domain supports: full:, keyword:, domain: (suffix), and regexp:
+# @name addDnsRule
+PUT {{baseUrl}}/dns-rules?norestart=true
+Content-Type: {{contentType}}
+
+{
+    "routeMode": "proxy",
+    "domain": "domain:example.com"
+}
+
+### Remove DNS rule
+# The body must identify an existing rule exactly.
+# @name removeDnsRule
+DELETE {{baseUrl}}/dns-rules?norestart=true
+Content-Type: {{contentType}}
+
+{
+    "routeMode": "proxy",
+    "domain": "domain:example.com"
+}
+
+### Add IP rule
+# @name addIpRule
+PUT {{baseUrl}}/ip-rules?norestart=true
+Content-Type: {{contentType}}
+
+{
+    "routeMode": "direct",
+    "ip": "192.0.2.0/24"
+}
+
+### Remove IP rule
+# The body must identify an existing rule exactly.
+# @name removeIpRule
+DELETE {{baseUrl}}/ip-rules?norestart=true
+Content-Type: {{contentType}}
+
+{
+    "routeMode": "direct",
+    "ip": "192.0.2.0/24"
+}
+
+### Add VLESS Reality outbound
+# Replace all example URL values before sending.
+# @name addOutbound
+POST {{baseUrl}}/outbounds?norestart=true
+Content-Type: {{contentType}}
+
+{
+    "tag": "{{newOutboundTag}}",
+    "url": "vless://123e4567-e89b-12d3-a456-426614174000@203.0.113.10:443?type=tcp&security=reality&pbk=replace-public-key&fp=firefox&sni=example.com&sid=0123456789abcdef&spx=%2F&flow=xtls-rprx-vision"
+}
+
+### Delete outbound
+# @name deleteOutbound
+DELETE {{baseUrl}}/outbounds/{{newOutboundTag}}?norestart=true
+
+### Change selector default
+# The tag must already be a member of the proxy selector.
+# @name setSelectorDefault
+PUT {{baseUrl}}/outbounds/selector/default?norestart=true
+Content-Type: {{contentType}}
+
+{
+    "tag": "{{fixedOutboundTag}}"
+}
+
+### Enable proxy-all mode
+# Sets route.final to proxy and DNS final to dns-remote.
+# @name enableProxyAll
+PUT {{baseUrl}}/route/mode?norestart=true
+Content-Type: {{contentType}}
+
+{
+    "mode": "proxy"
+}
+
+### Enable split-tunneling mode
+# Sets route.final to direct and DNS final to dns-direct.
+# @name enableSplitTunneling
+PUT {{baseUrl}}/route/mode?norestart=true
+Content-Type: {{contentType}}
+
+{
+    "mode": "direct"
+}
+
+### Get subscription settings
+# @name getSubscriptionSettings
+GET {{baseUrl}}/subscription/settings
+Accept: application/json
+
+### Set subscription settings
+# Every fixed tag must already exist and belong to the proxy selector.
+# @name setSubscriptionSettings
+PUT {{baseUrl}}/subscription/settings
+Content-Type: {{contentType}}
+
+{
+    "version": 1,
+    "fixed_outbounds": [
+        "{{fixedOutboundTag}}"
+    ],
+    "fallback_outbound": "{{fixedOutboundTag}}"
+}
+
+### Update subscription
+# WARNING: Replaces all non-fixed, non-structural outbounds.
+# @name updateSubscription
+PUT {{baseUrl}}/subscription?norestart=true
+Content-Type: {{contentType}}
+
+{
+    "version": 1,
+    "outbounds": [
+        {
+            "type": "direct",
+            "tag": "direct"
+        },
+        {
+            "type": "vless",
+            "tag": "subscription-example",
+            "server": "203.0.113.20",
+            "server_port": 443,
+            "uuid": "123e4567-e89b-12d3-a456-426614174000",
+            "packet_encoding": "xudp",
+            "flow": "xtls-rprx-vision",
+            "tls": {
+                "enabled": true,
+                "server_name": "example.com",
+                "utls": {
+                    "enabled": true,
+                    "fingerprint": "firefox"
+                },
+                "reality": {
+                    "enabled": true,
+                    "public_key": "replace-public-key",
+                    "short_id": "0123456789abcdef"
+                }
+            }
+        }
+    ]
+}
+
+### List backups
+# @name listBackups
+GET {{baseUrl}}/backups
+Accept: application/json
+
+### Restore backup
+# WARNING: Replaces the active config. The current config is backed up first.
+# Set backupName above to a name returned by GET /backups.
+# @name restoreBackup
+POST {{baseUrl}}/backups/{{backupName}}/restore?norestart=true
+
+### Delete backups older than a date
+# WARNING: Permanently deletes matching backups.
+# The cutoff must be RFC3339. This example uses UTC (Z).
+# @name deleteOldBackups
+DELETE {{baseUrl}}/backups?before={{deleteBackupsBefore}}
+
+### Get sing-box status
+# @name singboxStatus
+GET {{baseUrl}}/singbox/status
+Accept: application/json
+
+### Start sing-box
+# WARNING: Controls the systemd service.
+# @name startSingbox
+POST {{baseUrl}}/singbox/start
+
+### Stop sing-box
+# WARNING: Controls the systemd service.
+# @name stopSingbox
+POST {{baseUrl}}/singbox/stop
+
+### Restart sing-box
+# WARNING: Controls the systemd service.
+# @name restartSingbox
+POST {{baseUrl}}/singbox/restart
+
+### Download logs
+# @name downloadLogs
+GET {{baseUrl}}/logs
+
+### Enable logs
+# Valid levels: trace, debug, info, warn, error, fatal, panic.
+# @name enableLogs
+PUT {{baseUrl}}/logs/enable?norestart=true&truncate=false&level=info
+
+### Disable logs
+# @name disableLogs
+PUT {{baseUrl}}/logs/disable?norestart=true
+
+### Truncate logs
+# WARNING: Clears the current log file.
+# @name truncateLogs
+PUT {{baseUrl}}/logs/truncate
+
+### Change log level
+# Valid levels: trace, debug, info, warn, error, fatal, panic.
+# @name setLogLevel
+PUT {{baseUrl}}/logs/level/debug?norestart=true

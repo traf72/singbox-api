@@ -131,7 +131,7 @@ func TestLoadSubscriptionSettings(t *testing.T) {
 	directory := t.TempDir()
 	configPath := filepath.Join(directory, "config.json")
 	t.Setenv("CONFIG_PATH", configPath)
-	settingsPath := filepath.Join(directory, "config.subscription.state")
+	settingsPath := filepath.Join(directory, "subscription.state")
 	require.NoError(t, os.WriteFile(settingsPath, []byte(`{
 		"version": 1,
 		"fixed_outbounds": ["fixed-vless"],
