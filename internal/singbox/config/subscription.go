@@ -138,6 +138,13 @@ func ListBackups() ([]BackupInfo, apperr.Err) {
 	return backups, nil
 }
 
+func CreateBackup() (*BackupInfo, apperr.Err) {
+	subscriptionMutex.Lock()
+	defer subscriptionMutex.Unlock()
+
+	return createBackup(time.Now())
+}
+
 func RestoreBackup(name string) apperr.Err {
 	subscriptionMutex.Lock()
 	defer subscriptionMutex.Unlock()
@@ -462,24 +469,29 @@ func saveSubscriptionSettings(settings *SubscriptionSettings) apperr.Err {
 }
 
 func backupConfig() apperr.Err {
+	_, err := createBackup(time.Now())
+	return err
+}
+
+func createBackup(timestamp time.Time) (*BackupInfo, apperr.Err) {
 	path, err := getConfPath()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	contents, readErr := os.ReadFile(path)
 	if readErr != nil {
-		return errSubscriptionRead(readErr)
+		return nil, errSubscriptionRead(readErr)
 	}
-	return storeSubscriptionBackup(contents, time.Now())
+	return storeSubscriptionBackup(contents, timestamp)
 }
 
-func storeSubscriptionBackup(contents []byte, timestamp time.Time) apperr.Err {
+func storeSubscriptionBackup(contents []byte, timestamp time.Time) (*BackupInfo, apperr.Err) {
 	backupDirectory, err := subscriptionBackupDirectory()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if mkdirErr := os.MkdirAll(backupDirectory, 0o700); mkdirErr != nil {
-		return errSubscriptionWrite(mkdirErr)
+		return nil, errSubscriptionWrite(mkdirErr)
 	}
 	backupName := timestamp.Format("20060102_150405")
 	backupPath := filepath.Join(backupDirectory, backupName)
@@ -489,16 +501,20 @@ func storeSubscriptionBackup(contents []byte, timestamp time.Time) apperr.Err {
 			break
 		}
 		if statErr != nil {
-			return errSubscriptionRead(statErr)
+			return nil, errSubscriptionRead(statErr)
 		}
 		backupName = fmt.Sprintf("%s_%d", timestamp.Format("20060102_150405"), suffix)
 		backupPath = filepath.Join(backupDirectory, backupName)
 	}
 	if writeErr := writeAtomicFile(backupPath, contents); writeErr != nil {
-		return errSubscriptionWrite(writeErr)
+		return nil, errSubscriptionWrite(writeErr)
 	}
 
-	return nil
+	info, statErr := os.Stat(backupPath)
+	if statErr != nil {
+		return nil, errSubscriptionRead(statErr)
+	}
+	return &BackupInfo{Name: backupName, CreatedAt: info.ModTime(), Size: info.Size()}, nil
 }
 
 func subscriptionBackupDirectory() (string, apperr.Err) {

@@ -61,27 +61,32 @@ func TestNewRule(t *testing.T) {
 		kind        RuleType
 		mode        config.RouteMode
 		domain      string
-		expected    *Rule
+		expected    string
 		expectedErr apperr.Err
 	}{
-		{"Suffix_Direct", Suffix, config.RouteDirect, " .Com ", &Rule{Suffix, config.RouteDirect, ".com"}, nil},
-		{"Suffix_Block", Suffix, config.RouteBlock, " .Com ", &Rule{Suffix, config.RouteBlock, ".com"}, nil},
-		{"Suffix_Proxy", Suffix, config.RouteProxy, " .Com ", &Rule{Suffix, config.RouteProxy, ".com"}, nil},
-		{"Domain_Proxy", Domain, config.RouteProxy, "Google.Com\n", &Rule{Domain, config.RouteProxy, "google.com"}, nil},
-		{"Keyword_Block", Keyword, config.RouteBlock, "google", &Rule{Keyword, config.RouteBlock, "google"}, nil},
-		{"EmptyDomain", Suffix, config.RouteProxy, "", nil, errEmptyDomain},
-		{"WhiteSpaceOnlyDomain", Keyword, config.RouteProxy, " \n\r\t", nil, errEmptyDomain},
-		{"DomainWithSpace", Suffix, config.RouteProxy, "google com", nil, errDomainHasSpaces("google com")},
-		{"Kind_Invalid", RuleType(-1), config.RouteProxy, "google.com", nil, errInvalidRuleType},
-		{"RouteMode_Invalid", Suffix, "Unknown", "google.com", nil, apperr.NewValidationErr("DNSRule_InvalidRouteMode", "invalid route mode 'Unknown'")},
-		{"Domain_Invalid", Domain, config.RouteProxy, "@com", nil, errInvalidDomain("@com")},
+		{"Suffix_Direct", Suffix, config.RouteDirect, " .Com ", ".com", nil},
+		{"Suffix_Block", Suffix, config.RouteBlock, " .Com ", ".com", nil},
+		{"Suffix_Proxy", Suffix, config.RouteProxy, " .Com ", ".com", nil},
+		{"Domain_Proxy", Domain, config.RouteProxy, "Google.Com\n", "google.com", nil},
+		{"Keyword_Block", Keyword, config.RouteBlock, "google", "google", nil},
+		{"EmptyDomain", Suffix, config.RouteProxy, "", "", errEmptyDomain},
+		{"WhiteSpaceOnlyDomain", Keyword, config.RouteProxy, " \n\r\t", "", errEmptyDomain},
+		{"DomainWithSpace", Suffix, config.RouteProxy, "google com", "", errDomainHasSpaces("google com")},
+		{"Kind_Invalid", RuleType(-1), config.RouteProxy, "google.com", "", errInvalidRuleType},
+		{"RouteMode_Invalid", Suffix, "Unknown", "google.com", "", apperr.NewValidationErr("DNSRule_InvalidRouteMode", "invalid route mode 'Unknown'")},
+		{"Domain_Invalid", Domain, config.RouteProxy, "@com", "", errInvalidDomain("@com")},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			rule, err := NewRule(tt.kind, tt.mode, tt.domain)
-			assert.Equal(t, tt.expected, rule)
 			assert.Equal(t, tt.expectedErr, err)
+			if tt.expectedErr == nil {
+				assert.Equal(t, tt.kind, rule.kind)
+				assert.Equal(t, tt.mode, rule.mode)
+				assert.Equal(t, tt.expected, rule.domain)
+				assert.NotNil(t, rule.target)
+			}
 		})
 	}
 }

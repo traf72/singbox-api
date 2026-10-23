@@ -15,6 +15,7 @@ var (
 
 type IPRule struct {
 	RouteMode string `json:"routeMode"`
+	Outbound  string `json:"outbound,omitempty"`
 	IP        string `json:"ip"`
 }
 
@@ -28,7 +29,7 @@ func (r *IPRule) toConfigRule() (*ip.Rule, apperr.Err) {
 		return nil, apperr.NewValidationErr("IPRule_InvalidRouteMode", err.Error())
 	}
 
-	rule, appErr := ip.NewRule(routeMode, r.IP)
+	rule, appErr := ip.NewRuleForOutbound(routeMode, r.Outbound, r.IP)
 	if appErr != nil {
 		return nil, appErr
 	}

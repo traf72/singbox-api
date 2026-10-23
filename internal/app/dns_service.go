@@ -25,22 +25,36 @@ func errDNSTooManyParts(t string) apperr.Err {
 
 type DNSRule struct {
 	RouteMode string `json:"routeMode"`
+	Outbound  string `json:"outbound,omitempty"`
 	Domain    string `json:"domain"`
 }
 
 func (r *DNSRule) toConfigRule() (*dns.Rule, apperr.Err) {
-	if strings.TrimSpace(r.Domain) == "" {
-		return nil, errDNSEmptyRule
-	}
-
 	routeMode, err := config.RouteModeFromString(r.RouteMode)
 	if err != nil {
 		return nil, apperr.NewValidationErr("DNSRule_InvalidRouteMode", err.Error())
 	}
+	ruleType, domain, appErr := parseDNSRuleDomain(r.Domain)
+	if appErr != nil {
+		return nil, appErr
+	}
 
-	parts := strings.Split(r.Domain, ":")
+	rule, appErr := dns.NewRuleForOutbound(ruleType, routeMode, r.Outbound, domain)
+	if appErr != nil {
+		return nil, appErr
+	}
+
+	return rule, nil
+}
+
+func parseDNSRuleDomain(input string) (dns.RuleType, string, apperr.Err) {
+	if strings.TrimSpace(input) == "" {
+		return -1, "", errDNSEmptyRule
+	}
+
+	parts := strings.Split(input, ":")
 	if len(parts) > 2 {
-		return nil, errDNSTooManyParts(r.Domain)
+		return -1, "", errDNSTooManyParts(input)
 	}
 
 	var ruleType dns.RuleType
@@ -53,18 +67,13 @@ func (r *DNSRule) toConfigRule() (*dns.Rule, apperr.Err) {
 	} else {
 		ruleType, appErr = parseDNSRuleType(parts[0])
 		if appErr != nil {
-			return nil, appErr
+			return -1, "", appErr
 		}
 
 		domain = parts[1]
 	}
 
-	rule, appErr := dns.NewRule(ruleType, routeMode, domain)
-	if appErr != nil {
-		return nil, appErr
-	}
-
-	return rule, nil
+	return ruleType, domain, nil
 }
 
 func parseDNSRuleType(input string) (dns.RuleType, apperr.Err) {

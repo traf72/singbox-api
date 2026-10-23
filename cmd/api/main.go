@@ -28,6 +28,7 @@ func main() {
 
 	router.Handle("PUT /ip-rules", handlers.AddIPRuleHandler())
 	router.Handle("DELETE /ip-rules", handlers.RemoveIPRuleHandler())
+	router.Handle("GET /route-rules/assignments", handlers.GetRuleAssignmentsHandler())
 
 	router.Handle("POST /outbounds", handlers.AddOutboundHandler())
 	router.Handle("DELETE /outbounds/{tag}", handlers.RemoveOutboundHandler())
@@ -37,6 +38,7 @@ func main() {
 	router.Handle("PUT /subscription/settings", handlers.SetSubscriptionSettingsHandler())
 	router.Handle("PUT /subscription", handlers.UpdateSubscriptionHandler())
 	router.Handle("GET /backups", handlers.ListBackupsHandler())
+	router.Handle("POST /backups", handlers.CreateBackupHandler())
 	router.Handle("POST /backups/{name}/restore", handlers.RestoreBackupHandler())
 	router.Handle("DELETE /backups", handlers.RemoveOldBackupsHandler())
 

@@ -12,7 +12,12 @@ import (
 var jsonSerializeOptions = &utils.JSONOptions{Indent: "    ", EscapeHTML: false}
 
 func SendJson(w http.ResponseWriter, body any) {
+	SendJsonStatus(w, http.StatusOK, body)
+}
+
+func SendJsonStatus(w http.ResponseWriter, status int, body any) {
 	header.SetContentType(w, header.ContentTypeJson)
+	w.WriteHeader(status)
 
 	if err := utils.ToJSON(w, body, jsonSerializeOptions); err != nil {
 		SendInternalServerError(w, apperr.NewFatalErr("JsonEncodingError", err.Error()))

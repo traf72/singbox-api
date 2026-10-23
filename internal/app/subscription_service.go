@@ -44,6 +44,10 @@ func ListBackups() ([]BackupInfo, apperr.Err) {
 	return config.ListBackups()
 }
 
+func CreateBackup() (*BackupInfo, apperr.Err) {
+	return config.CreateBackup()
+}
+
 func RestoreBackup(name string, restart bool) apperr.Err {
 	if err := config.RestoreBackup(name); err != nil {
 		return err

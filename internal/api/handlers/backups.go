@@ -20,6 +20,16 @@ func listBackups(w http.ResponseWriter, _ *http.Request) {
 	api.SendJson(w, backups)
 }
 
+func createBackup(w http.ResponseWriter, _ *http.Request) {
+	backup, err := app.CreateBackup()
+	if err != nil {
+		api.SendError(w, err)
+		return
+	}
+
+	api.SendJsonStatus(w, http.StatusCreated, backup)
+}
+
 func restoreBackup(w http.ResponseWriter, r *http.Request) {
 	noRestart, err := query.GetBool(r.URL.Query(), "norestart", false)
 	if err != nil {
@@ -53,6 +63,10 @@ func removeOldBackups(w http.ResponseWriter, r *http.Request) {
 
 func ListBackupsHandler() http.Handler {
 	return middleware.NewHandlerFunc(listBackups).Build()
+}
+
+func CreateBackupHandler() http.Handler {
+	return middleware.NewHandlerFunc(createBackup).Build()
 }
 
 func RestoreBackupHandler() http.Handler {

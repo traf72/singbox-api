@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -30,6 +31,7 @@ func TestBackupHandlers(t *testing.T) {
 
 	router := http.NewServeMux()
 	router.Handle("GET /backups", ListBackupsHandler())
+	router.Handle("POST /backups", CreateBackupHandler())
 	router.Handle("POST /backups/{name}/restore", RestoreBackupHandler())
 	router.Handle("DELETE /backups", RemoveOldBackupsHandler())
 
@@ -37,6 +39,17 @@ func TestBackupHandlers(t *testing.T) {
 	require.Equal(t, http.StatusOK, listResponse.Code, listResponse.Body.String())
 	assert.Contains(t, listResponse.Body.String(), `"name": "20261022_172500"`)
 	assert.Contains(t, listResponse.Body.String(), `"name": "20261020_120000"`)
+
+	createResponse := serveJSONRequest(router, http.MethodPost, "/backups", "")
+	require.Equal(t, http.StatusCreated, createResponse.Code, createResponse.Body.String())
+	var created struct {
+		Name string `json:"name"`
+		Size int64  `json:"size"`
+	}
+	require.NoError(t, json.Unmarshal(createResponse.Body.Bytes(), &created))
+	assert.NotEmpty(t, created.Name)
+	assert.Positive(t, created.Size)
+	assert.FileExists(t, filepath.Join(backupDirectory, created.Name))
 
 	invalidCleanupResponse := serveJSONRequest(router, http.MethodDelete, "/backups?before=not-a-date", "")
 	assert.Equal(t, http.StatusBadRequest, invalidCleanupResponse.Code)

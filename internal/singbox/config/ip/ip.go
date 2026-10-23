@@ -19,13 +19,25 @@ func errInvalidIP(ip string) apperr.Err {
 }
 
 type Rule struct {
-	mode config.RouteMode
-	ip   string
+	mode   config.RouteMode
+	target *config.RuleTarget
+	ip     string
 }
 
 func NewRule(m config.RouteMode, ip string) (*Rule, apperr.Err) {
+	return NewRuleForOutbound(m, "", ip)
+}
+
+func NewRuleForOutbound(m config.RouteMode, outbound, ip string) (*Rule, apperr.Err) {
+	if err := m.Validate(); err != nil {
+		return nil, apperr.NewValidationErr("IPRule_InvalidRouteMode", err.Error())
+	}
+	target, err := config.NewRuleTarget(m, outbound)
+	if err != nil {
+		return nil, apperr.NewValidationErr("IPRule_InvalidOutbound", err.Error())
+	}
 	ip = strings.TrimSpace(ip)
-	rule := &Rule{mode: m, ip: ip}
+	rule := &Rule{mode: m, target: target, ip: ip}
 	if err := rule.validate(); err != nil {
 		return nil, err
 	}
@@ -56,6 +68,9 @@ func AddRule(r *Rule) apperr.Err {
 	if err != nil {
 		return err
 	}
+	if err := r.target.ValidateForAdd(c.Conf); err != nil {
+		return err
+	}
 
 	added := add(r, c.Conf)
 	if added {
@@ -68,13 +83,15 @@ func AddRule(r *Rule) apperr.Err {
 }
 
 func add(r *Rule, c *config.Conf) (added bool) {
-	rules := getRouteRules(r.mode, c)
+	ruleSet := config.FindOrCreateRouteRule(c, r.target)
+	rules := &ruleSet.IP_CIDR
 	ruleIdx := slices.IndexFunc(*rules, func(ip string) bool {
 		return strings.TrimSpace(ip) == r.ip
 	})
 
 	if ruleIdx == -1 {
 		*rules = append(*rules, r.ip)
+		config.NormalizeRouteRuleOrder(c)
 		return true
 	}
 
@@ -84,6 +101,9 @@ func add(r *Rule, c *config.Conf) (added bool) {
 func RemoveRule(r *Rule) apperr.Err {
 	c, err := config.Load()
 	if err != nil {
+		return err
+	}
+	if err := r.target.ValidateForRemoval(c.Conf); err != nil {
 		return err
 	}
 
@@ -98,7 +118,11 @@ func RemoveRule(r *Rule) apperr.Err {
 }
 
 func removeRule(r *Rule, c *config.Conf) (removed bool) {
-	rules := getRouteRules(r.mode, c)
+	ruleSet, ok := config.FindRouteRule(c, r.target)
+	if !ok {
+		return false
+	}
+	rules := &ruleSet.IP_CIDR
 	ruleIdx := slices.IndexFunc(*rules, func(d string) bool {
 		return strings.TrimSpace(d) == r.ip
 	})
@@ -108,27 +132,15 @@ func removeRule(r *Rule, c *config.Conf) (removed bool) {
 	}
 
 	*rules = slices.Delete(*rules, ruleIdx, ruleIdx+1)
+	config.RemoveRouteRuleIfEmpty(c, r.target)
+	config.NormalizeRouteRuleOrder(c)
 	return true
 }
 
-func getRouteRules(m config.RouteMode, c *config.Conf) *[]string {
-	mode := string(m)
-	ruleSetIdx := slices.IndexFunc(c.Route.Rules, func(rr config.RouteRule) bool {
-		return rr.Outbound == mode || (m == config.RouteBlock && rr.Action == "reject")
-	})
-
-	if ruleSetIdx == -1 {
-		newRule := config.RouteRule{Rule: config.Rule{}}
-		if m == config.RouteBlock {
-			newRule.Action = "reject"
-		} else {
-			newRule.Outbound = mode
-		}
-
-		c.Route.Rules = append(c.Route.Rules, newRule)
-		ruleSetIdx = len(c.Route.Rules) - 1
+func FindAssignments(r *Rule) ([]config.RuleAssignment, apperr.Err) {
+	c, err := config.Load()
+	if err != nil {
+		return nil, err
 	}
-
-	ruleSet := &c.Route.Rules[ruleSetIdx]
-	return &ruleSet.IP_CIDR
+	return config.FindRuleAssignments(c.Conf, config.RuleIPCIDR, r.ip), nil
 }
