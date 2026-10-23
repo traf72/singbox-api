@@ -63,9 +63,21 @@ Content-Type: {{contentType}}
 GET {{baseUrl}}/route-rules/assignments?domain=domain%3Aexample.com
 Accept: application/json
 
+### Find all rules covering a hostname
+# Matches exact, suffix, keyword, and regular-expression route rules.
+# @name findCoveringDomainAssignments
+GET {{baseUrl}}/route-rules/assignments?domain=www.example.com&match=covering
+Accept: application/json
+
 ### Find all assignments for an IP rule
 # @name findIpAssignments
 GET {{baseUrl}}/route-rules/assignments?ip=192.0.2.0%2F24
+Accept: application/json
+
+### Find all CIDR rules covering an IP address
+# A CIDR input remains an exact lookup even in covering mode.
+# @name findCoveringIpAssignments
+GET {{baseUrl}}/route-rules/assignments?ip=192.0.2.42&match=covering
 Accept: application/json
 
 ### Add IP rule

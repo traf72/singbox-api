@@ -119,6 +119,81 @@ func TestDomainRulesSupportMultipleProxyOutboundsAndLookup(t *testing.T) {
 	assert.Contains(t, ipLookup.Body.String(), `"outbound": "france"`)
 }
 
+func TestCoveringRuleAssignments(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "config.json")
+	require.NoError(t, os.WriteFile(configPath, []byte(`{
+		"dns":{"rules":[],"servers":[]},
+		"outbounds":[
+			{"type":"selector","tag":"proxy","outbounds":["germany"]},
+			{"type":"vless","tag":"germany"},
+			{"type":"direct","tag":"direct"}
+		],
+		"route":{"rules":[
+			{"action":"sniff","timeout":"1s"},
+			{"action":"reject","domain_keyword":["facebook"]},
+			{"outbound":"direct","domain":["facebook.com"],"ip_cidr":["145.67.23.64/26"]},
+			{"outbound":"germany","domain_regex":["^.*facebook\\.com$"],"ip_cidr":["145.67.0.0/16"]},
+			{"outbound":"proxy","domain_suffix":["facebook.com"],"ip_cidr":["145.0.0.0/8","145.67.23.65"]}
+		]}
+	}`), 0o600))
+	t.Setenv("CONFIG_PATH", configPath)
+
+	router := http.NewServeMux()
+	router.Handle("GET /route-rules/assignments", GetRuleAssignmentsHandler())
+
+	domainLookup := serveJSONRequest(router, http.MethodGet,
+		"/route-rules/assignments?domain=facebook.com&match=covering", "")
+	require.Equal(t, http.StatusOK, domainLookup.Code, domainLookup.Body.String())
+	assert.JSONEq(t, `{
+		"kind":"domain",
+		"value":"facebook.com",
+		"match":"covering",
+		"matches":[
+			{"type":"domain_keyword","pattern":"facebook","routeMode":"block","order":1},
+			{"type":"domain","pattern":"facebook.com","routeMode":"direct","outbound":"direct","order":2},
+			{"type":"domain_regex","pattern":"^.*facebook\\.com$","routeMode":"proxy","outbound":"germany","order":3},
+			{"type":"domain_suffix","pattern":"facebook.com","routeMode":"proxy","outbound":"proxy","order":4}
+		]
+	}`, domainLookup.Body.String())
+
+	ipLookup := serveJSONRequest(router, http.MethodGet,
+		"/route-rules/assignments?ip=145.67.23.65&match=covering", "")
+	require.Equal(t, http.StatusOK, ipLookup.Code, ipLookup.Body.String())
+	assert.JSONEq(t, `{
+		"kind":"ip",
+		"value":"145.67.23.65",
+		"match":"covering",
+		"matches":[
+			{"type":"ip_cidr","pattern":"145.67.23.64/26","routeMode":"direct","outbound":"direct","order":2},
+			{"type":"ip_cidr","pattern":"145.67.0.0/16","routeMode":"proxy","outbound":"germany","order":3},
+			{"type":"ip_cidr","pattern":"145.0.0.0/8","routeMode":"proxy","outbound":"proxy","order":4},
+			{"type":"ip_cidr","pattern":"145.67.23.65","routeMode":"proxy","outbound":"proxy","order":4}
+		]
+	}`, ipLookup.Body.String())
+
+	cidrLookup := serveJSONRequest(router, http.MethodGet,
+		"/route-rules/assignments?ip=145.67.0.0%2F16&match=covering", "")
+	require.Equal(t, http.StatusOK, cidrLookup.Code, cidrLookup.Body.String())
+	assert.JSONEq(t, `{
+		"kind":"ip",
+		"value":"145.67.0.0/16",
+		"match":"covering",
+		"matches":[
+			{"type":"ip_cidr","pattern":"145.67.0.0/16","routeMode":"proxy","outbound":"germany","order":3}
+		]
+	}`, cidrLookup.Body.String())
+
+	invalidMode := serveJSONRequest(router, http.MethodGet,
+		"/route-rules/assignments?domain=facebook.com&match=partial", "")
+	assert.Equal(t, http.StatusBadRequest, invalidMode.Code)
+	assert.Contains(t, invalidMode.Body.String(), "match must be 'exact' or 'covering'")
+
+	invalidDomainType := serveJSONRequest(router, http.MethodGet,
+		"/route-rules/assignments?domain=keyword%3Afacebook&match=covering", "")
+	assert.Equal(t, http.StatusBadRequest, invalidDomainType.Code)
+	assert.Contains(t, invalidDomainType.Body.String(), "covering domain lookup requires a hostname")
+}
+
 func assertRouteOutboundOrder(t *testing.T, configPath string, expected []string) {
 	t.Helper()
 	contents, err := os.ReadFile(configPath)

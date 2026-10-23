@@ -2,6 +2,8 @@ package config
 
 import (
 	"fmt"
+	"net/netip"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -27,6 +29,14 @@ type RuleAssignment struct {
 	RouteMode RouteMode `json:"routeMode"`
 	Outbound  string    `json:"outbound,omitempty"`
 	Order     int       `json:"order"`
+}
+
+type RuleMatch struct {
+	Type      RuleValueType `json:"type"`
+	Pattern   string        `json:"pattern"`
+	RouteMode RouteMode     `json:"routeMode"`
+	Outbound  string        `json:"outbound,omitempty"`
+	Order     int           `json:"order"`
 }
 
 func NewRuleTarget(mode RouteMode, outbound string) (*RuleTarget, apperr.Err) {
@@ -241,6 +251,117 @@ func FindRuleAssignments(conf *Conf, valueType RuleValueType, value string) []Ru
 		})
 	}
 	return assignments
+}
+
+func FindCoveringDomainMatches(conf *Conf, hostname string) []RuleMatch {
+	hostname = strings.ToLower(strings.TrimSpace(hostname))
+	matches := make([]RuleMatch, 0)
+	for order, rule := range conf.Route.Rules {
+		assignment, ok := assignmentForRouteRule(conf, rule, order)
+		if !ok {
+			continue
+		}
+		matches = appendDomainMatches(matches, assignment, RuleDomain, rule.Domain, func(pattern string) bool {
+			return hostname == strings.ToLower(pattern)
+		})
+		matches = appendDomainMatches(matches, assignment, RuleDomainSuffix, rule.DomainSuffix, func(pattern string) bool {
+			pattern = strings.TrimPrefix(strings.ToLower(pattern), ".")
+			return pattern != "" && (hostname == pattern || strings.HasSuffix(hostname, "."+pattern))
+		})
+		matches = appendDomainMatches(matches, assignment, RuleDomainKeyword, rule.DomainKeyword, func(pattern string) bool {
+			pattern = strings.ToLower(pattern)
+			return pattern != "" && strings.Contains(hostname, pattern)
+		})
+		for _, pattern := range rule.DomainRegex {
+			pattern = strings.TrimSpace(pattern)
+			expression, err := regexp.Compile(pattern)
+			if err == nil && expression.MatchString(hostname) {
+				matches = append(matches, ruleMatch(assignment, RuleDomainRegex, pattern))
+			}
+		}
+	}
+	return matches
+}
+
+func FindCoveringIPMatches(conf *Conf, value string) []RuleMatch {
+	value = strings.TrimSpace(value)
+	if strings.Contains(value, "/") {
+		return findExactRuleMatches(conf, RuleIPCIDR, value)
+	}
+	address, err := netip.ParseAddr(value)
+	if err != nil {
+		return []RuleMatch{}
+	}
+
+	matches := make([]RuleMatch, 0)
+	for order, rule := range conf.Route.Rules {
+		assignment, ok := assignmentForRouteRule(conf, rule, order)
+		if !ok {
+			continue
+		}
+		for _, pattern := range rule.IP_CIDR {
+			pattern = strings.TrimSpace(pattern)
+			matched := false
+			if prefix, parseErr := netip.ParsePrefix(pattern); parseErr == nil {
+				matched = prefix.Contains(address)
+			} else if candidate, parseErr := netip.ParseAddr(pattern); parseErr == nil {
+				matched = candidate == address
+			}
+			if matched {
+				matches = append(matches, ruleMatch(assignment, RuleIPCIDR, pattern))
+			}
+		}
+	}
+	return matches
+}
+
+func findExactRuleMatches(conf *Conf, valueType RuleValueType, value string) []RuleMatch {
+	matches := make([]RuleMatch, 0)
+	for order, rule := range conf.Route.Rules {
+		if !ruleContainsValue(rule, valueType, value) {
+			continue
+		}
+		assignment, ok := assignmentForRouteRule(conf, rule, order)
+		if ok {
+			matches = append(matches, ruleMatch(assignment, valueType, strings.TrimSpace(value)))
+		}
+	}
+	return matches
+}
+
+func assignmentForRouteRule(conf *Conf, rule RouteRule, order int) (RuleAssignment, bool) {
+	if rule.Action == "reject" {
+		return RuleAssignment{RouteMode: RouteBlock, Order: order}, true
+	}
+	if rule.Outbound == "" {
+		return RuleAssignment{}, false
+	}
+	mode := RouteProxy
+	if IsDirectOutbound(conf, rule.Outbound) {
+		mode = RouteDirect
+	}
+	return RuleAssignment{RouteMode: mode, Outbound: rule.Outbound, Order: order}, true
+}
+
+func appendDomainMatches(matches []RuleMatch, assignment RuleAssignment, valueType RuleValueType,
+	patterns []string, predicate func(string) bool) []RuleMatch {
+	for _, pattern := range patterns {
+		pattern = strings.TrimSpace(pattern)
+		if predicate(pattern) {
+			matches = append(matches, ruleMatch(assignment, valueType, pattern))
+		}
+	}
+	return matches
+}
+
+func ruleMatch(assignment RuleAssignment, valueType RuleValueType, pattern string) RuleMatch {
+	return RuleMatch{
+		Type:      valueType,
+		Pattern:   pattern,
+		RouteMode: assignment.RouteMode,
+		Outbound:  assignment.Outbound,
+		Order:     assignment.Order,
+	}
 }
 
 func ruleContainsValue(rule RouteRule, valueType RuleValueType, value string) bool {

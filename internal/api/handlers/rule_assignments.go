@@ -9,7 +9,11 @@ import (
 )
 
 func getRuleAssignments(w http.ResponseWriter, r *http.Request) {
-	result, err := app.GetRuleAssignments(r.URL.Query().Get("domain"), r.URL.Query().Get("ip"))
+	result, err := app.GetRuleAssignments(
+		r.URL.Query().Get("domain"),
+		r.URL.Query().Get("ip"),
+		r.URL.Query().Get("match"),
+	)
 	if err != nil {
 		api.SendError(w, err)
 		return
